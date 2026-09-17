@@ -8,7 +8,7 @@ Justin Ang · Gabriel Lee · Han Ni · Sebastian Goh · Jia Le · Jovan Ng
 
 ## 1. Problem Statement
 
-As AI tools become easier to use, fraudulent information and hoaxes are increasingly generated and spread across social platforms to drive engagement. These often reuse real events with altered details — wrong dates, wrong numbers, outdated news presented as current.
+As AI tools become easier to use, fraudulent information and hoaxes are increasingly generated and spread across social platforms to drive engagement. These often reuse real events with altered details (wrong dates, wrong numbers, outdated news presented as current).
 
 Most existing fact-checking tools give a single flat verdict (e.g. "FALSE") without explaining which specific details are wrong. They also don't indicate whether a claim has circulated before. This makes it hard for users to recognize when something is a repeated hoax rather than new misinformation.
 
@@ -79,8 +79,8 @@ User (image / text / link)
 | `data_manager` | Handles all database reads/writes (PostgreSQL). Saves processed claims, loads history, and provides filter/query functions — including recurrence lookups and a "popular searches" view. |
 
 ### Hard Constraints
-- 100% procedural — no classes
-- AI is the core engine — every claim passes through the AI API
+- 100% procedural no classes
+- AI is the core engine every claim passes through the AI API
 - AI must return structured, schema-validated JSON
 - Persistence via PostgreSQL
 - Runs in Docker
