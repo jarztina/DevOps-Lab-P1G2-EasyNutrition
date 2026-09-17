@@ -1,4 +1,5 @@
 **VeriFact**
+
 AI Claim Checker Application
 LAB P1 G2
 Justin Ang , Gabriel Lee, Han Ni, Sebastian Goh, Jia Le, Jovan Ng
