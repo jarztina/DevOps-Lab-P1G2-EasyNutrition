@@ -1,4 +1,12 @@
+Jovan -
 Database_Packages:
 psycopg[binary]
 python-dotenv
 bcrypt
+
+Database instructions:
+1.Install PostgreSQL.
+2.Create nutrition_db.
+3.Run your schema.sql to create the tables.
+4.Create their own .env.
+5.Run the application.
