@@ -3,7 +3,7 @@ from database.connection import get_connection
 
 
 def create_user(name, password, calorie_target, dietary_preference):
-    # Create a new user and store their profile in the database
+    #Create a new user and store their profile in the database
 
     password_hash = bcrypt.hashpw(
         password.encode("utf-8"),
@@ -28,6 +28,27 @@ def create_user(name, password, calorie_target, dietary_preference):
             conn.commit()
 
             return user_id
+
+    finally:
+        conn.close()
+
+def get_user(user_id):
+    # Retrieve a user's profile from the database
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT user_id, name, calorie_target, dietary_preference
+                FROM users
+                WHERE user_id = %s;
+                """,
+                (user_id,)
+            )
+
+            return cursor.fetchone()
 
     finally:
         conn.close()
