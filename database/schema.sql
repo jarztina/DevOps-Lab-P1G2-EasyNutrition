@@ -36,12 +36,6 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO postgres;
-
---
--- Name: users_user_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
 CREATE SEQUENCE public.users_user_id_seq
     AS integer
     START WITH 1
@@ -50,12 +44,6 @@ CREATE SEQUENCE public.users_user_id_seq
     NO MAXVALUE
     CACHE 1;
 
-
-ALTER SEQUENCE public.users_user_id_seq OWNER TO postgres;
-
---
--- Name: users_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
 
 ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
 
