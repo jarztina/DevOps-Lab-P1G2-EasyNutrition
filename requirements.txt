@@ -1,0 +1,4 @@
+Database_Packages:
+psycopg[binary]
+python-dotenv
+bcrypt
