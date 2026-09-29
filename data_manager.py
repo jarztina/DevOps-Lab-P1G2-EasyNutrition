@@ -5,6 +5,18 @@ from database.connection import get_connection
 def create_user(name, password, calorie_target, dietary_preference):
     #Create a new user and store their profile in the database
 
+    if not name.strip():
+        raise ValueError("Name cannot be empty")
+
+    if not password:
+        raise ValueError("Password cannot be empty")
+
+    if calorie_target <= 0:
+        raise ValueError("Calorie target must be greater than 0")
+
+    if not dietary_preference.strip():
+        raise ValueError("Dietary preference cannot be empty")
+    
     password_hash = bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt()
@@ -90,6 +102,12 @@ def get_user(user_id):
 def update_user(user_id, calorie_target, dietary_preference):
     #Update a user's calorie target and dietary preference
 
+    if calorie_target <= 0:
+        raise ValueError("Calorie target must be greater than 0")
+
+    if not dietary_preference.strip():
+        raise ValueError("Dietary preference cannot be empty")
+    
     conn = get_connection()
 
     try:
