@@ -6,7 +6,7 @@ bcrypt
 
 Database instructions:
 1.Install PostgreSQL.
-2.Create nutrition_db.
+2.Create nutrition_recipe_advisor using pgadmin4
 3.Run your schema.sql to create the tables.
 4.Create their own .env.
 5.Run the application.
