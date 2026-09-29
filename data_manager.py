@@ -54,6 +54,12 @@ def create_user(name, password, calorie_target, dietary_preference):
 def verify_login(name, password):
     #Verify a user's login credentials
 
+    if not name.strip():
+        raise ValueError("Name cannot be empty")
+
+    if not password:
+        raise ValueError("Password cannot be empty")
+
     conn = get_connection()
 
     try:
