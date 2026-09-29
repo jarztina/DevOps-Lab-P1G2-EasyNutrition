@@ -10,3 +10,16 @@ Database instructions:
 3.Run your schema.sql to create the tables.
 4.Create their own .env.
 5.Run the application.
+
+.env to contain:
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=nutrition_recipe_advisor
+DB_USER=postgres
+DB_PASSWORD=[Set Password]
+
+Database Functions:
+create_user()
+verify_login()
+get_user()
+update_user()
