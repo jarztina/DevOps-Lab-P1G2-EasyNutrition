@@ -86,3 +86,29 @@ def get_user(user_id):
 
     finally:
         conn.close()
+
+def update_user(user_id, calorie_target, dietary_preference):
+    #Update a user's calorie target and dietary preference
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE users
+                SET calorie_target = %s,
+                    dietary_preference = %s
+                WHERE user_id = %s;
+                """,
+                (calorie_target, dietary_preference, user_id)
+            )
+
+            conn.commit()
+
+            return cursor.rowcount > 0
+
+    finally:
+        conn.close()
+
+
