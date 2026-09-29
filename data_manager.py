@@ -1,4 +1,5 @@
 import bcrypt
+import psycopg
 from database.connection import get_connection
 
 
@@ -26,20 +27,26 @@ def create_user(name, password, calorie_target, dietary_preference):
 
     try:
         with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO users
-                (name, password_hash, calorie_target, dietary_preference)
-                VALUES (%s, %s, %s, %s)
-                RETURNING user_id;
-                """,
-                (name, password_hash, calorie_target, dietary_preference)
-            )
+            try:
+                cursor.execute(
+                    """
+                    INSERT INTO users
+                    (name, password_hash, calorie_target, dietary_preference)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING user_id;
+                    """,
+                    (name, password_hash, calorie_target, dietary_preference)
+                )
+            
+                user_id = cursor.fetchone()[0]
+                conn.commit()
 
-            user_id = cursor.fetchone()[0]
-            conn.commit()
-
-            return user_id
+                return user_id
+            
+            except psycopg.errors.UniqueViolation:
+                conn.rollback()
+                return None
+        
 
     finally:
         conn.close()
