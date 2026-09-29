@@ -32,8 +32,42 @@ def create_user(name, password, calorie_target, dietary_preference):
     finally:
         conn.close()
 
+def verify_login(name, password):
+    #Verify a user's login credentials
+
+    conn = get_connection()
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT user_id, password_hash
+                FROM users
+                WHERE name = %s;
+                """,
+                (name,)
+            )
+
+            user = cursor.fetchone()
+
+            if user is None:
+                return None
+
+            user_id, password_hash = user
+
+            if bcrypt.checkpw(
+                password.encode("utf-8"),
+                password_hash.encode("utf-8")
+            ):
+                return user_id
+
+            return None
+
+    finally:
+        conn.close()
+
 def get_user(user_id):
-    # Retrieve a user's profile from the database
+    #Retrieve a user's profile from the database
 
     conn = get_connection()
 
