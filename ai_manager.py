@@ -18,7 +18,13 @@ response = requests.get(url, headers=headers, params=params)
 recipes = response.json()
 
 for recipe in recipes:
-    print(f"Recipe: {recipe['title']}")
-    print(f"Used Ingredients: {[ingredient['name'] for ingredient in recipe['usedIngredients']]}")
-    print(f"Missed Ingredients: {[ingredient['name'] for ingredient in recipe['missedIngredients']]}")
-    print(f"Link: https://spoonacular.com/recipes/{recipe['title'].replace(' ', '-')}-{recipe['id']}\n\n")
+    print(f"Recipe: {recipe['title']}\n")
+    print("Existing Ingredients: ")
+    for i in range(len(recipe['usedIngredients'])):
+        print(f"    - {recipe['usedIngredients'][i]['amount']} {recipe['usedIngredients'][i]['unit']} {recipe['usedIngredients'][i]['name']}")
+
+    print("\nAdditional Ingredients: ")
+    for i in range(len(recipe['missedIngredients'])):
+        print(f"    - {recipe['missedIngredients'][i]['amount']} {recipe['missedIngredients'][i]['unit']} {recipe['missedIngredients'][i]['name']}")
+
+    print(f"\nLink: https://spoonacular.com/recipes/{recipe['title'].replace(' ', '-')}-{recipe['id']}\n\n")
