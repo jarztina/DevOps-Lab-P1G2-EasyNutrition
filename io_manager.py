@@ -65,3 +65,23 @@ def current_user() -> dict | None:
 
 def redirect_to(endpoint: str):
     return redirect(url_for(endpoint))
+
+### Diet and Calorie Checks
+
+def validate_calories(text: str) -> tuple[bool, int | str]:
+    # Limit calorie to whole number and within range
+    try:
+        value = int(str(text).strip())
+    except (ValueError, TypeError):
+        return False, "Calories must be a whole number, for example 500."
+
+    if value < MIN_CALORIES or value > MAX_CALORIES:
+        return False, f"Calories must be between {MIN_CALORIES} and {MAX_CALORIES}."
+    return True, value
+
+def validate_diet(text: str) -> tuple[bool, str]:
+    ### Accept only the diets team agreed on
+    value = str(text).strip().lower()
+    if value not in ALLOWED_DIETS:
+        return False, "Diet must be one of: " + ", ".join(ALLOWED_DIETS)
+    return True, value
