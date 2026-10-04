@@ -144,9 +144,8 @@ def update_user(user_id, calorie_target, dietary_preference):
         conn.close()
 
 def save_record(record):
-    #Save one scan and all its recipes (accepted + rejected) in one transaction.
-    #Returns (True, scan_id) on success, or (False, message) if it fails. 
-    #Need to check this function
+    #Save one scan and all its recipes (both accepted & rejected).
+    #Returns (True, scan_id) on success, or (False, message) if it fails.
     conn = get_connection()
 
     try:
@@ -200,6 +199,35 @@ def save_record(record):
 
     except (psycopg.Error, KeyError, TypeError) as exc:
         return False, "Your results could not be saved, but they are shown below."
+
+    finally:
+        conn.close()
+
+def load_recent(user_id, limit=5):
+    #Load a user's most recent scans, newest first.
+    #Each scan also carries a count of how many of its recipes were accepted.
+    #Returns (True, list_of_rows) or (False, message).
+    conn = get_connection()
+
+    sql = """
+        SELECT s.id, s.created_at, s.image_name, s.calorie_limit, s.diet,
+               (SELECT COUNT(*) FROM recipes r
+                WHERE r.scan_id = s.id AND r.status = 'accepted') AS accepted_count
+        FROM scans s
+        WHERE s.user_id = %s
+        ORDER BY s.created_at DESC
+        LIMIT %s;
+    """
+
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (user_id, limit))
+                rows = cursor.fetchall()
+        return True, rows
+
+    except psycopg.Error as exc:
+        return False, "Could not load your recent scans."
 
     finally:
         conn.close()
