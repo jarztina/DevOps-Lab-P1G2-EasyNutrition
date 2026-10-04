@@ -1,6 +1,7 @@
 import bcrypt
 import psycopg
 from database.connection import get_connection
+from psycopg.types.json import Jsonb
 
 
 def create_user(name, password, calorie_target, dietary_preference):
@@ -142,4 +143,63 @@ def update_user(user_id, calorie_target, dietary_preference):
     finally:
         conn.close()
 
+def save_record(record):
+    #Save one scan and all its recipes (accepted + rejected) in one transaction.
+    #Returns (True, scan_id) on success, or (False, message) if it fails. 
+    #Need to check this function
+    conn = get_connection()
 
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                #insert the scan, get its new id back
+                cursor.execute(
+                    """
+                    INSERT INTO scans
+                        (user_id, image_name, calorie_limit, diet, detected_items)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id;
+                    """,
+                    (
+                        record["user_id"],
+                        record["image_name"],
+                        record["calorie_limit"],
+                        record["diet"],
+                        Jsonb(record["detected_items"]),
+                    ),
+                )
+                scan_id = cursor.fetchone()[0]
+
+                #insert every recipe, linked to that scan
+                for recipe in record["accepted"] + record["rejected"]:
+                    cursor.execute(
+                        """
+                        INSERT INTO recipes
+                            (scan_id, name, calories, status, score, leftovers_used,
+                             reasons, ingredients_used, extra_ingredients, steps,
+                             spoonacular_id, source_url)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                        """,
+                        (
+                            scan_id,
+                            recipe["name"],
+                            recipe.get("calories"),
+                            recipe["status"],
+                            recipe["score"],
+                            recipe["leftovers_used"],
+                            Jsonb(recipe["reasons"]),
+                            Jsonb(recipe.get("ingredients_used", [])),
+                            Jsonb(recipe.get("extra_ingredients", [])),
+                            Jsonb(recipe.get("steps", [])),
+                            recipe.get("spoonacular_id"),
+                            recipe.get("source_url", ""),
+                        ),
+                    )
+
+        return True, scan_id
+
+    except (psycopg.Error, KeyError, TypeError) as exc:
+        return False, "Your results could not be saved, but they are shown below."
+
+    finally:
+        conn.close()
