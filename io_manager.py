@@ -48,3 +48,20 @@ def collect_credentials(form, is_register: bool = False) -> tuple[bool, dict | l
     if errors:
         return False, errors
     return True, {"username": username, "password": password}
+
+def login_user(user_id: int, username: str) -> None:
+    session.clear()
+    session["user_id"] = user_id
+    session["username"] = username
+
+def logout_user() -> None:
+    session.clear()
+
+def current_user() -> dict | None:
+    user_id = session.get("user_id")
+    if user_id is None:
+        return None
+    return {"id": user_id, "username": session.get("username", "")}
+
+def redirect_to(endpoint: str):
+    return redirect(url_for(endpoint))
