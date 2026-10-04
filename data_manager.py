@@ -145,7 +145,6 @@ def update_user(user_id, calorie_target, dietary_preference):
 
 def save_record(record):
     #Save one scan and all its recipes (both accepted & rejected).
-    #Returns (True, scan_id) on success, or (False, message) if it fails.
     conn = get_connection()
 
     try:
@@ -205,8 +204,6 @@ def save_record(record):
 
 def load_recent(user_id, limit=5):
     #Load a user's most recent scans, newest first.
-    #Each scan also carries a count of how many of its recipes were accepted.
-    #Returns (True, list_of_rows) or (False, message).
     conn = get_connection()
 
     sql = """
@@ -228,6 +225,40 @@ def load_recent(user_id, limit=5):
 
     except psycopg.Error as exc:
         return False, "Could not load your recent scans."
+
+    finally:
+        conn.close()
+
+def filter_recipes(user_id, diet=None, max_calories=None, status="accepted"):
+    #Find a user's saved recipes, filtered by status, diet, and max calories.
+    #diet and max_calories are optional
+    conn = get_connection()
+
+    # Start from fixed SQL text. User values go ONLY through %s placeholders.
+    sql = ("SELECT r.*, s.image_name, s.diet, s.created_at "
+           "FROM recipes r JOIN scans s ON s.id = r.scan_id "
+           "WHERE s.user_id = %s AND r.status = %s")
+    params = [user_id, status]
+
+    if diet and diet != "none":
+        sql += " AND s.diet = %s"
+        params.append(diet)
+
+    if max_calories is not None:
+        sql += " AND r.calories <= %s"
+        params.append(max_calories)
+
+    sql += " ORDER BY s.created_at DESC, r.score DESC, r.id LIMIT 100"
+
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+        return True, rows
+
+    except psycopg.Error as exc:
+        return False, "Could not search your saved recipes."
 
     finally:
         conn.close()
