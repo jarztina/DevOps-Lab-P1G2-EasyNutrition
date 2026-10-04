@@ -67,5 +67,33 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
+CREATE TABLE IF NOT EXISTS scans (
+    id             SERIAL PRIMARY KEY,
+    user_id        INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    image_name     TEXT NOT NULL,
+    calorie_limit  INTEGER NOT NULL,
+    diet           TEXT NOT NULL,
+    detected_items JSONB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS recipes (
+    id                SERIAL PRIMARY KEY,
+    scan_id           INTEGER NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    name              TEXT NOT NULL,
+    calories          NUMERIC(7,1),
+    status            TEXT NOT NULL CHECK (status IN ('accepted', 'rejected')),
+    score             REAL NOT NULL DEFAULT 0,
+    leftovers_used    INTEGER NOT NULL DEFAULT 0,
+    reasons           JSONB NOT NULL,
+    ingredients_used  JSONB NOT NULL,
+    extra_ingredients JSONB NOT NULL,
+    steps             JSONB NOT NULL,
+    spoonacular_id    INTEGER,
+    source_url        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_scans_user ON scans(user_id);
+CREATE INDEX IF NOT EXISTS idx_recipes_status ON recipes(status);
 \unrestrict RxCvL6jYHduNL0ogjoTmceLmeg41F7EeY59l5SG4zU1spKKPakbyhMO18sQyKUt
 
