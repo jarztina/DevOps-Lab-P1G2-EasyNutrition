@@ -94,3 +94,121 @@ def validate_calories(text: str) -> tuple[bool, int | str]:
         return False, "Calories must be a whole number, for example 500."
     if value < MIN_CALORIES or value > MAX_CALORIES:
         return False, f"Calories must be between {MIN_CALORIES} and {MAX_CALORIES}."
+    return True, value
+
+
+def validate_diet(text: str) -> tuple[bool, str]:
+    """Accept only the four diet values agreed upon by the team."""
+    value = str(text).strip().lower()
+    if value not in ALLOWED_DIETS:
+        return False, "Diet must be one of: " + ", ".join(ALLOWED_DIETS) + "."
+    return True, value
+
+
+def detect_media_type(data: bytes) -> str | None:
+    """Identify JPEG or PNG using its file signature rather than its name."""
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    return None
+
+
+def validate_upload(file_storage: FileStorage | None) -> tuple[bool, dict | str]:
+    """Validate a photo's size and signature and return bytes and a safe name."""
+    if file_storage is None or not file_storage.filename:
+        return False, "Please choose a photo."
+    try:
+        # Read once, with a limit so oversized files cannot fill memory.
+        data = file_storage.read(MAX_UPLOAD_BYTES + 1)
+    except (OSError, ValueError):
+        logger.warning("Could not read uploaded photo.")
+        return False, "Could not read the photo. Please choose it again."
+    if len(data) == 0:
+        return False, "The file is empty."
+    if len(data) > MAX_UPLOAD_BYTES:
+        return False, "Photo is too big (max 5 MB)."
+    media_type = detect_media_type(data)
+    if media_type is None:
+        return False, "Only JPG or PNG photos are allowed."
+    name = secure_filename(file_storage.filename) or "upload"
+    return True, {"image_bytes": data, "media_type": media_type, "image_name": name}
+
+
+def collect_input(
+    form: Mapping[str, str], files: Mapping[str, FileStorage]
+) -> tuple[bool, dict | list[str]]:
+    """Validate calories, diet and photo together and collect every error."""
+    errors = []
+    ok_cal, calories = validate_calories(form.get("calorie_limit", ""))
+    if not ok_cal:
+        errors.append(calories)
+    ok_diet, diet = validate_diet(form.get("diet", "none"))
+    if not ok_diet:
+        errors.append(diet)
+    ok_img, image = validate_upload(files.get("image"))
+    if not ok_img:
+        errors.append(image)
+    if errors:
+        return False, errors
+    data = dict(image)
+    data["calorie_limit"] = calories
+    data["diet"] = diet
+    return True, data
+
+
+def parse_history_filters(args: Mapping[str, str]) -> tuple[bool, dict | str]:
+    """Validate history URL filters using the data_manager argument names."""
+    filters = {"diet": None, "max_calories": None, "status": "accepted"}
+    diet = args.get("diet", "").strip().lower()
+    if diet:
+        ok, value = validate_diet(diet)
+        if not ok:
+            return False, value
+        filters["diet"] = value
+    max_cal = args.get("max_calories", "").strip()
+    if max_cal:
+        ok, value = validate_calories(max_cal)
+        if not ok:
+            return False, value
+        filters["max_calories"] = value
+    return True, filters
+
+
+def render_login(errors: list[str] | None = None) -> str:
+    """Render the login form and any validation errors."""
+    return render_template("login.html", errors=errors or [], user=current_user())
+
+
+def render_register(errors: list[str] | None = None) -> str:
+    """Render the registration form and any validation errors."""
+    return render_template("register.html", errors=errors or [], user=current_user())
+
+
+def render_home(
+    errors: list[str] | None = None, recent: list[dict] | None = None
+) -> str:
+    """Render the photo upload form, errors and recent scans."""
+    return render_template(
+        "index.html", errors=errors or [], recent=recent or [],
+        diets=ALLOWED_DIETS, user=current_user()
+    )
+
+
+def render_results(record: dict) -> str:
+    """Render detected food, accepted recipes and rejection reasons."""
+    return render_template("results.html", record=record, user=current_user())
+
+
+def render_history(rows: list[dict], filters: dict) -> str:
+    """Render saved recipes and the history filter form."""
+    return render_template(
+        "history.html", rows=rows, filters=filters,
+        diets=ALLOWED_DIETS, user=current_user()
+    )
+
+
+def render_error(message: str) -> str:
+    """Render a friendly error page without exposing a traceback."""
+    logger.warning("Showing error page: %s", message)
+    return render_template("error.html", message=message, user=current_user())
