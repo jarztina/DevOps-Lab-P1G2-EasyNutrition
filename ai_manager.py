@@ -1,70 +1,126 @@
-import requests
+import base64
 import json
+import os
+from dotenv import load_dotenv
+from anthropic import Anthropic
 from PIL import Image
-from google import genai
-from google.genai import types
 
-#Initialising Google GenAI API
-GEMINI_API_KEY = 'AQ.Ab8RN6LfrriR03PeJ4PPOu7aYwWxclkn0U7_XdxLk2jzO_AEcA'
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+load_dotenv()
 
-gemini_response_schema = {
-    "type": "OBJECT",
-    "properties": {
-        "ingredients": {
-            "type": "ARRAY",
-            "items": {"type": "STRING"}
-        }
-    },
-    "required": ["ingredients"]
-}
+client = Anthropic()
 
-#Initialising Spoonacular API
-SPOONACULAR_API_KEY = '7ce6627f3a3b43a2a3904676235b3e9c'
-url = "https://api.spoonacular.com/recipes/findByIngredients"
+def get_image_media_type(image_path: str) -> str:
+    with Image.open(image_path) as img:
+        fmt = img.format.lower()
+        if fmt in ["jpeg", "jpg"]:
+            return "image/jpeg"
+        elif fmt == "png":
+            return "image/png"
+        elif fmt == "webp":
+            return "image/webp"
+        elif fmt == "gif":
+            return "image/gif"
+        else:
+            raise ValueError(f"Unsupported image format: {fmt}")
 
-image = Image.open("test_image.png")  # To be replaced with the image captured from the camera
+def encode_image(image_path: str) -> str:
+    with open(image_path, "rb") as file:
+        return base64.b64encode(file.read()).decode("utf-8")
 
-def get_ingredients(image) -> str:
-    response = gemini_client.models.generate_content(
-    model="gemini-3.8-flash",
-    contents=[image,
-               "Identify all food ingredients in this photo and return them as a list of strings in JSON format. Only return the list of ingredients, no other text."],
-    config=types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=gemini_response_schema
-    )
-)
-    response_json = json.loads(response.text)
+def get_recipes_from_image(image_path: str, dietary_restrictions: list = None, allergies: list = None):
+    # 1. Verify file existence before execution
+    if not os.path.exists(image_path):
+        print(f"Error: Could not find file '{image_path}' in {os.getcwd()}")
+        return None
 
-    return ','.join(response_json['ingredients'])  # Convert list to comma-separated string
+    dietary_restrictions_str = ", ".join(dietary_restrictions) if dietary_restrictions else "None"
+    allergies_str = ", ".join(allergies) if allergies else "None"
+
+    try:
+        base64_data = encode_image(image_path)
+        media_type = get_image_media_type(image_path)
+
+        prompt = f"""
+        Analyze the food ingredients in this photo.
+        USER CONSTRAINTS:
+        - Dietary Preferences: {dietary_restrictions_str}
+        - Allergies / Exclusions: {allergies_str}
+
+        CRITICAL RULES:
+        1. Every generated recipe MUST strictly satisfy the listed Dietary Preferences (e.g., if vegetarian, no meat or poultry).
+        2. NEVER include any listed allergy items in the recipes (neither as present nor missing/extra ingredients).            
+        Return EXACTLY 5 recipe ideas based on these ingredients.
+        
+        You must return ONLY a raw JSON object with no markdown formatting, no conversational text, and no backticks. The JSON must follow this exact structure:
+        {{
+          "recipes": [
+            {{
+              "recipe_name": "Name of Recipe",
+              "ingredients_present": ["item1", "item2"],
+              "ingredients_missing": ["item3", "item4"],
+              "instructions": ["Step 1", "Step 2"]
+            }}
+          ]
+        }}
+        """
+
+        response = client.messages.create(
+            model="claude-sonnet-5-5",
+            max_tokens=2000,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64_data
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ]
+        )
+
+        raw_text = ""
+        for block in response.content:
+            if block.type == "text":
+                raw_text = block.text.strip()
+                break
 
 
-print(get_ingredients(image)) 
+        # Clean markdown code block wraps if present
+        if raw_text.startswith("```json"):
+            raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+        elif raw_text.startswith("```"):
+            raw_text = raw_text.replace("```", "").strip()
 
-def get_recipes(ingredients: str):
+        return json.loads(raw_text)
 
-    params = {
-        "ingredients": ingredients,     #Takes in a string of ingredients separated by commas
-        "number": 5,                    # Number of recipes to retrieve
-        "ranking": 1,                   # 1 = Maximize used ingredients
-        "ignorePantry": True            # Ignores basics like salt, water, oil
-    }
+    except Exception as e:
+        print(f"Error executing API call: {e}")
+        return None
 
-    headers = {'x-api-key': SPOONACULAR_API_KEY}
-    response = requests.get(url, headers=headers, params=params)
-    recipes = response.json()
+# Safe execution block
+if __name__ == "__main__":
+    image_filename = "test_image.png"
+    recipe_data = get_recipes_from_image(image_filename, dietary_restrictions=["vegetarian"])
 
-    for recipe in recipes:
-        print(f"Recipe: {recipe['title']}\n")
-        print("Existing Ingredients: ")         #Ingredients that AI detected
-        for i in range(len(recipe['usedIngredients'])):
-            print(f"    - {recipe['usedIngredients'][i]['amount']} {recipe['usedIngredients'][i]['unit']} {recipe['usedIngredients'][i]['name']}")
-
-        print("\nAdditional Ingredients: ")     #Missing Ingredients
-        for i in range(len(recipe['missedIngredients'])):
-            print(f"    - {recipe['missedIngredients'][i]['amount']} {recipe['missedIngredients'][i]['unit']} {recipe['missedIngredients'][i]['name']}")
-
-        print(f"\nLink: https://spoonacular.com/recipes/{recipe['title'].replace(' ', '-')}-{recipe['id']}\n\n")
-
-get_recipes("chicken, rice, broccoli")
+    # 2. Check that dictionary data was returned before indexing
+    if recipe_data and "recipes" in recipe_data:
+        for index, recipe in enumerate(recipe_data["recipes"], start=1):
+            print(f"Recipe {index}: {recipe['recipe_name']}")
+            print(f"Present: {', '.join(recipe['ingredients_present'])}")
+            print(f"Missing: {', '.join(recipe['ingredients_missing'])}")
+            print(f"Instructions:")
+            for step_index, step in enumerate(recipe['instructions'], start=1):
+                print(f"  {step_index}. {step}")
+            print("-" * 30)
+    else:
+        print("Failed to retrieve recipes. Please check the error messages above.")
