@@ -1,25 +1,40 @@
-Jovan -
-Database_Packages:
+# EasyNutrition requirements
+# Install with: pip install -r requirements.txt
+
+# --- Web ---
+flask
+gunicorn
+
+# --- AI and recipes ---
+anthropic
+requests
+pillow
+
+# --- Database ---
 psycopg[binary]
 python-dotenv
 bcrypt
 
-Database instructions:
-1.Install PostgreSQL.
-2.Create nutrition_recipe_advisor using pgadmin4
-3.Run your schema.sql to create the tables.
-4.Create their own .env.
-5.Run the application.
+# --- Testing ---
+pytest
 
-.env to contain:
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=nutrition_recipe_advisor
-DB_USER=postgres
-DB_PASSWORD=[Set Password]
-
-Database Functions:
-create_user()
-verify_login()
-get_user()
-update_user()
+# Database setup:
+# 1. Install PostgreSQL.
+# 2. Create the database nutrition_recipe_advisor in pgAdmin 4.
+# 3. Run database/schema.sql in the Query Tool to create the tables.
+# 4. Make your own .env file (copy .env.example and fill it in).
+# 5. Run the application.
+#
+# .env needs:
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_NAME=nutrition_recipe_advisor
+# DB_USER=postgres
+# DB_PASSWORD=[set your password]
+# ANTHROPIC_API_KEY=[your key]
+# SPOONACULAR_API_KEY=[your key]
+# SECRET_KEY=[any long random text]
+#
+# Database functions (data_manager.py):
+# create_user(), verify_login(), get_user(), update_user(),
+# save_record(), load_recent(), filter_recipes()
