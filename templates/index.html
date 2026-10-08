@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Leftover Chef</title></head>
+<body>
+{% if user %}<p>Logged in as {{ user.username }}
+  <form method="post" action="/logout"><button>Log out</button></form></p>{% endif %}
+<h1>What can I cook with my leftovers?</h1>
+{% for e in errors %}<p style="color:red">{{ e }}</p>{% endfor %}
+<form method="post" action="/analyse" enctype="multipart/form-data">
+  <p><label>Photo <input type="file" name="image"
+        accept="image/jpeg,image/png" required></label></p>
+  <p><label>Calorie limit <input type="number" name="calorie_limit"
+        value="500" required></label></p>
+  <p><label>Diet <select name="diet">
+    {% for d in diets %}<option>{{ d }}</option>{% endfor %}
+  </select></label></p>
+  <button type="submit">Find recipes</button>
+</form>
+{% if recent %}<h2>Recent scans</h2><ul>
+  {% for s in recent %}<li>{{ s.image_name }} - {{ s.accepted_count }} recipes</li>
+  {% endfor %}</ul>{% endif %}
+<p><a href="/history">History</a></p>
+</body></html>
