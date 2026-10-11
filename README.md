@@ -18,10 +18,6 @@ Photo and form -> `io_manager` -> `ai_manager` -> `logic_manager` -> `data_manag
 
 The code is 100% procedural: functions only, no classes.
 
-## Approved changes to the brief
-
-The web interface (instead of a terminal app) and PostgreSQL (instead of CSV or JSON files) were approved by [lecturer name] on [date].
-
 ## Run with Docker (recommended)
 
 1. Install Docker Desktop and make sure it is running.
