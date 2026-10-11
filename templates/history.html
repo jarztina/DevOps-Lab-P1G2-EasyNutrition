@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>History</title></head>
+<body>
+<h1>Saved recipes</h1>
+<form method="get" action="/history">
+  <label>Diet <select name="diet">
+    <option value="">any</option>
+    {% for d in diets %}<option {% if filters.diet == d %}selected{% endif %}>{{ d }}
+    </option>{% endfor %}
+  </select></label>
+  <label>Max calories <input type="number" name="max_calories"
+        value="{{ filters.max_calories or '' }}"></label>
+  <button type="submit">Filter</button>
+</form>
+<table border="1" cellpadding="4">
+  <tr><th>Recipe</th><th>kcal</th><th>Diet</th><th>Score</th><th>Saved</th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.name }}</td><td>{{ r.calories|round|int }}</td><td>{{ r.diet }}</td>
+      <td>{{ r.score }}</td><td>{{ r.created_at }}</td></tr>
+  {% else %}<tr><td colspan="5">Nothing saved yet.</td></tr>{% endfor %}
+</table>
+<p><a href="/">Home</a></p>
+</body></html>

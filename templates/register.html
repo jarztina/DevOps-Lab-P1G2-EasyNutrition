@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Register</title></head>
+<body>
+<h1>Create an account</h1>
+{% for e in errors %}<p style="color:red">{{ e }}</p>{% endfor %}
+<form method="post" action="/register">
+  <p><label>Name <input name="username" required></label></p>
+  <p><label>Password <input type="password" name="password" required></label></p>
+  <p><label>Confirm password
+     <input type="password" name="confirm_password" required></label></p>
+  <button type="submit">Register</button>
+</form>
+<p><a href="/login">I already have an account</a></p>
+</body></html>
