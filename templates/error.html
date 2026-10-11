@@ -1,7 +1,9 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Problem</title></head>
-<body>
-<h1>Sorry, something went wrong</h1>
-<p>{{ message }}</p>
-<p><a href="/">Back to the start</a></p>
-</body></html>
+{% extends "base.html" %}
+{% block title %}Problem - EasyNutrition{% endblock %}
+{% block content %}
+<div class="card center">
+  <h1>Sorry, something went wrong</h1>
+  <div class="alert">{{ message }}</div>
+  <p><a class="btn" href="/">Back to the start</a></p>
+</div>
+{% endblock %}

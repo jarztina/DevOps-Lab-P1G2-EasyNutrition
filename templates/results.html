@@ -1,22 +1,44 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Results</title></head>
-<body>
+{% extends "base.html" %}
+{% block title %}Results - EasyNutrition{% endblock %}
+{% block content %}
 <h1>Results</h1>
-{% if record.save_warning %}<p style="color:darkorange">{{ record.save_warning }}</p>
-{% endif %}
-<h2>Food found</h2>
-<ul>{% for i in record.detected_items %}<li>{{ i.name }} ({{ i.quantity }})</li>
-{% else %}<li>No food detected in this photo.</li>{% endfor %}</ul>
+{% if record.save_warning %}<div class="alert warn">{{ record.save_warning }}</div>{% endif %}
+
+<div class="card">
+  <h2 style="margin-top:0">Food found</h2>
+  <ul class="chips">
+    {% for i in record.detected_items %}<li class="chip">{{ i.name }} ({{ i.quantity }})</li>
+    {% else %}<li>No food detected in this photo.</li>{% endfor %}
+  </ul>
+</div>
+
 <h2>Recipes you can make</h2>
 {% for r in record.accepted %}
-  <h3>{{ r.name }} - {{ r.calories|round|int }} kcal - score {{ r.score }}</h3>
-  <p>Uses your: {{ r.ingredients_used|join(", ") }}.
-     Also needs: {{ r.extra_ingredients|join(", ") or "nothing extra" }}</p>
+<div class="card recipe">
+  <div class="recipe-head">
+    <h3>{{ r.name }}</h3>
+    <div class="badges">
+      <span class="badge">{{ r.calories|round|int }} kcal</span>
+      <span class="badge score">score {{ r.score }}</span>
+    </div>
+  </div>
+  <p><strong>Uses your:</strong> {{ r.ingredients_used|join(", ") }}.<br>
+     <strong>Also needs:</strong> {{ r.extra_ingredients|join(", ") or "nothing extra" }}</p>
   <ol>{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol>
   {% if r.source_url and r.source_url.startswith("https://") %}
     <p><a href="{{ r.source_url }}">Original recipe</a></p>{% endif %}
-{% else %}<p>No recipe matched your limits.</p>{% endfor %}
+</div>
+{% else %}
+<div class="card"><p>No recipe matched your limits. Try a higher calorie limit or a different diet.</p></div>
+{% endfor %}
+
 <h2>Rejected (and why)</h2>
-{% for r in record.rejected %}<p>{{ r.name }}: {{ r.reasons|join("; ") }}</p>{% endfor %}
-<p><a href="/">Try another photo</a></p>
-</body></html>
+{% for r in record.rejected %}
+<details class="rejected">
+  <summary>{{ r.name }}</summary>
+  <ul class="reasons">{% for reason in r.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+</details>
+{% else %}<p>Nothing was rejected.</p>{% endfor %}
+
+<p class="footer-link"><a href="/">Try another photo</a></p>
+{% endblock %}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}EasyNutrition{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">EasyNutrition</a>
+  <nav>
+    {% if user %}
+      <a href="/">Home</a>
+      <a href="/history">History</a>
+      <span class="who">Logged in as {{ user.username }}</span>
+      <form method="post" action="/logout" class="inline">
+        <button class="btn-small btn-ghost" type="submit">Log out</button>
+      </form>
+    {% endif %}
+  </nav>
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+<footer>EasyNutrition - turn leftovers into meals within your calorie goal</footer>
+</body>
+</html>
