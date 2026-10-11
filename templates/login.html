@@ -1,12 +1,15 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Login</title></head>
-<body>
-<h1>Log in</h1>
-{% for e in errors %}<p style="color:red">{{ e }}</p>{% endfor %}
-<form method="post" action="/login">
-  <p><label>Name <input name="username" required></label></p>
-  <p><label>Password <input type="password" name="password" required></label></p>
-  <button type="submit">Log in</button>
-</form>
-<p>New here? <a href="/register">Create an account</a></p>
-</body></html>
+{% extends "base.html" %}
+{% block title %}Log in - EasyNutrition{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Log in</h1>
+  <p class="lead">Welcome back. Log in to see your saved recipes.</p>
+  {% for e in errors %}<div class="alert">{{ e }}</div>{% endfor %}
+  <form method="post" action="/login">
+    <label>Name <input name="username" required></label>
+    <label>Password <input type="password" name="password" required></label>
+    <button type="submit">Log in</button>
+  </form>
+  <p class="footer-link">New here? <a href="/register">Create an account</a></p>
+</div>
+{% endblock %}

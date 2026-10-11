@@ -1,14 +1,19 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Register</title></head>
-<body>
-<h1>Create an account</h1>
-{% for e in errors %}<p style="color:red">{{ e }}</p>{% endfor %}
-<form method="post" action="/register">
-  <p><label>Name <input name="username" required></label></p>
-  <p><label>Password <input type="password" name="password" required></label></p>
-  <p><label>Confirm password
-     <input type="password" name="confirm_password" required></label></p>
-  <button type="submit">Register</button>
-</form>
-<p><a href="/login">I already have an account</a></p>
-</body></html>
+{% extends "base.html" %}
+{% block title %}Register - EasyNutrition{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Create an account</h1>
+  <p class="lead">Your scans and recipes are saved to your own account.</p>
+  {% for e in errors %}<div class="alert">{{ e }}</div>{% endfor %}
+  <form method="post" action="/register">
+    <label>Name <span class="hint">3 to 30 characters</span>
+      <input name="username" required></label>
+    <label>Password <span class="hint">At least 8 characters</span>
+      <input type="password" name="password" required></label>
+    <label>Confirm password
+      <input type="password" name="confirm_password" required></label>
+    <button type="submit">Register</button>
+  </form>
+  <p class="footer-link"><a href="/login">I already have an account</a></p>
+</div>
+{% endblock %}
