@@ -8,7 +8,6 @@ gunicorn
 # --- AI and recipes ---
 anthropic
 requests
-pillow
 
 # --- Database ---
 psycopg[binary]
@@ -32,6 +31,7 @@ pytest
 # DB_USER=postgres
 # DB_PASSWORD=[set your password]
 # ANTHROPIC_API_KEY=[your key]
+# AI_MODEL=claude-sonnet-5-5
 # SPOONACULAR_API_KEY=[your key]
 # SECRET_KEY=[any long random text]
 #
