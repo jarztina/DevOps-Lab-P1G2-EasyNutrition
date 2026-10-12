@@ -60,8 +60,17 @@ def home():
     user = io_manager.current_user()
     if user is None:
         return io_manager.redirect_to("login")
+
     ok, recent = data_manager.load_recent(user["id"], 5)
-    return io_manager.render_home(recent=recent if ok else [])
+
+    if not ok:
+        logging.error("Failed to load recent scans: %s", recent)
+        return io_manager.render_home(
+            errors=[recent],
+            recent=[]
+        ), 503
+
+    return io_manager.render_home(recent=recent)
 
 
 @app.route("/analyse", methods=["POST"])
