@@ -109,3 +109,9 @@ def history():
 @app.errorhandler(413)
 def too_big(_error):
     return io_manager.render_error("Photo is too big (max 5 MB)."), 413
+
+
+@app.errorhandler(500)
+def server_error(_error):
+    logging.exception("Unexpected error")
+    return io_manager.render_error("Something went wrong. Please try again later."), 500
