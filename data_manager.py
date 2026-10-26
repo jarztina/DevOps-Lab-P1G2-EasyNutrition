@@ -131,6 +131,23 @@ def update_user(user_id: int, calorie_target: int,
     finally:
         conn.close()
 
+# Delete a user and their related scans and recipes. Returns (True, was_deleted).
+def delete_user(user_id: int) -> tuple[bool, bool | str]:
+    conn = get_connection()
+    if conn is None:
+        return False, DB_DOWN
+    try:
+        with conn:
+            cursor = conn.execute(
+                "DELETE FROM users WHERE user_id = %s", (user_id,))
+            deleted = cursor.rowcount > 0
+        return True, deleted
+    except psycopg.Error as exc:
+        logger.error("Could not delete user: %s", exc)
+        return False, "Could not delete the user."
+    finally:
+        conn.close()
+
 
 # Save one scan and all its recipes (accepted and rejected) in one transaction.
 def save_record(record: dict) -> tuple[bool, int | str]:
