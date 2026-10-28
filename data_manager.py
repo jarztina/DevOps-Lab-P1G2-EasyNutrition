@@ -221,12 +221,25 @@ class PostgresDataManager(DataManager):
         finally:
             conn.close()
 
+    
     def update_user(
         self, user_id: int, calorie_target: int, dietary_preference: str
     ) -> tuple[bool, bool | str]:
         """Update a user's calorie target and diet."""
+
+        # Validate input types before comparing values or using string methods
+        if (
+            not isinstance(calorie_target, int)
+            or isinstance(calorie_target, bool)
+        ):
+            return False, "Calorie target must be a number."
+
+        if not isinstance(dietary_preference, str):
+            return False, "Dietary preference must be text."
+
         if calorie_target <= 0:
             return False, "Calorie target must be greater than 0."
+
         if not dietary_preference.strip():
             return False, "Dietary preference cannot be empty."
 
@@ -250,6 +263,7 @@ class PostgresDataManager(DataManager):
             return False, "Could not update your profile."
         finally:
             conn.close()
+
 
     def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
         """Delete a user and related scans/recipes through database cascades."""
