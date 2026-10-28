@@ -211,7 +211,6 @@ def test_save_record_inserts_the_scan_then_every_recipe(monkeypatch):
     assert cursor.execute.call_count == 1 + len(RECORD["accepted"]) + len(RECORD["rejected"])
     assert conn.close.called
 
-
 def test_save_record_survives_a_malformed_record(monkeypatch):
     use(monkeypatch, fake_db(one={"id": 7}))
     broken = dict(RECORD)
@@ -291,3 +290,54 @@ def test_filter_recipes_handles_a_database_error(monkeypatch):
     use(monkeypatch, fake_db(error=psycopg.Error("boom")))
     ok, message = data_manager.filter_recipes(1)
     assert ok is False and "saved recipes" in message
+
+# ---- delete_user -----------------------------------------------------------
+
+def test_delete_user_reports_db_down(monkeypatch):
+    use(monkeypatch, None)
+    assert data_manager.delete_user(1) == (False, data_manager.DB_DOWN)
+
+
+def test_delete_user_deletes_an_existing_user(monkeypatch):
+    conn = use(monkeypatch, fake_db(rowcount=1))
+    assert data_manager.delete_user(1) == (True, True)
+    sql, params = conn.execute.call_args.args
+    assert "DELETE FROM USERS" in sql.upper()
+    assert params == (1,)
+    assert conn.close.called
+
+
+def test_delete_user_returns_false_when_user_does_not_exist(monkeypatch):
+    conn = use(monkeypatch, fake_db(rowcount=0))
+    assert data_manager.delete_user(999) == (True, False)
+    assert conn.close.called
+
+
+def test_delete_user_handles_a_database_error(monkeypatch):
+    conn = use(monkeypatch, fake_db(error=psycopg.Error("boom")))
+    ok, message = data_manager.delete_user(1)
+    assert ok is False
+    assert isinstance(message, str)
+    assert conn.close.called
+
+# ---- OOP structure ---------------------------------------------------------
+
+def test_data_manager_is_abstract():
+    with pytest.raises(TypeError):
+        data_manager.DataManager()
+
+
+def test_postgres_data_manager_implements_the_contract():
+    manager = data_manager.PostgresDataManager()
+    assert isinstance(manager, data_manager.DataManager)
+
+
+def test_module_level_wrapper_delegates_to_manager(monkeypatch):
+    class FakeManager:
+        def create_user(
+            self, name, password, calorie_target=2000, dietary_preference="none"
+        ):
+            return True, 123
+
+    monkeypatch.setattr(data_manager, "_manager", FakeManager())
+    assert data_manager.create_user("ann", "pw") == (True, 123)
