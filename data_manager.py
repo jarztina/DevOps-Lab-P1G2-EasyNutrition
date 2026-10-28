@@ -61,7 +61,7 @@ class DataManager(ABC):
     def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
         """Delete a user account."""
 
-     @abstractmethod
+    @abstractmethod
     def save_record(self, record: dict) -> tuple[bool, int | str]:
         """Save a scan and its associated recipes."""
 
