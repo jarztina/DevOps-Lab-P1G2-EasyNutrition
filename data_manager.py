@@ -162,8 +162,14 @@ class PostgresDataManager(DataManager):
             conn.close()
 
 
+    
     def verify_login(self, name: str, password: str) -> tuple[bool, int | str]:
         """Check a login. Returns (True, user_id) or (False, message)."""
+
+        # Validate input types before using string methods
+        if not isinstance(name, str) or not isinstance(password, str):
+            return False, "Please type your name and password."
+
         name = name.strip().lower()
 
         if not name or not password:
@@ -191,6 +197,7 @@ class PostgresDataManager(DataManager):
             return True, user["user_id"]
 
         return False, "Wrong name or password."
+
 
     def get_user(self, user_id: int) -> tuple[bool, dict | None | str]:
         """Get a user's profile. A missing user is not a database error."""
