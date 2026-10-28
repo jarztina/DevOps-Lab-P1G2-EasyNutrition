@@ -42,3 +42,21 @@ class DataManager(ABC):
         dietary_preference: str = "none",
     ) -> tuple[bool, int | str]:
         """Create a user account."""
+
+    @abstractmethod
+    def verify_login(self, name: str, password: str) -> tuple[bool, int | str]:
+        """Verify a user's login credentials."""
+
+    @abstractmethod
+    def get_user(self, user_id: int) -> tuple[bool, dict | None | str]:
+        """Retrieve a user's profile."""
+
+    @abstractmethod
+    def update_user(
+        self, user_id: int, calorie_target: int, dietary_preference: str
+    ) -> tuple[bool, bool | str]:
+        """Update a user's profile."""
+
+    @abstractmethod
+    def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
+        """Delete a user account."""
