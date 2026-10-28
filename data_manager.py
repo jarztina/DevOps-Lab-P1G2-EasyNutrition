@@ -101,6 +101,7 @@ class PostgresDataManager(DataManager):
         except (ValueError, TypeError, AttributeError):
             return False
 
+    
     def create_user(
         self,
         name: str,
@@ -109,6 +110,11 @@ class PostgresDataManager(DataManager):
         dietary_preference: str = "none",
     ) -> tuple[bool, int | str]:
         """Register a user. Returns (True, user_id) or (False, message)."""
+
+        # Validate input types before using string methods
+        if not isinstance(name, str) or not isinstance(password, str):
+            return False, "Name and password must be text."
+
         name = name.strip().lower()
 
         if not name:
@@ -117,8 +123,14 @@ class PostgresDataManager(DataManager):
             return False, "Password cannot be empty."
         if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
             return False, "Password is too long."
+
+        if not isinstance(calorie_target, (int, float)) or isinstance(calorie_target, bool):
+            return False, "Calorie target must be a number."
         if calorie_target <= 0:
             return False, "Calorie target must be greater than 0."
+
+        if not isinstance(dietary_preference, str):
+            return False, "Dietary preference must be text."
         if not dietary_preference.strip():
             return False, "Dietary preference cannot be empty."
 
@@ -148,6 +160,7 @@ class PostgresDataManager(DataManager):
             return False, "Could not create your account. Please try again."
         finally:
             conn.close()
+
 
     def verify_login(self, name: str, password: str) -> tuple[bool, int | str]:
         """Check a login. Returns (True, user_id) or (False, message)."""
