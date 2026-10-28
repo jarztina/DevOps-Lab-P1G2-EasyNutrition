@@ -60,3 +60,21 @@ class DataManager(ABC):
     @abstractmethod
     def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
         """Delete a user account."""
+
+     @abstractmethod
+    def save_record(self, record: dict) -> tuple[bool, int | str]:
+        """Save a scan and its associated recipes."""
+
+    @abstractmethod
+    def load_recent(self, user_id: int, limit: int = 5) -> tuple[bool, list | str]:
+        """Load a user's most recent scans."""
+
+    @abstractmethod
+    def filter_recipes(
+        self,
+        user_id: int,
+        diet: str | None = None,
+        max_calories: int | None = None,
+        status: str = "accepted",
+    ) -> tuple[bool, list | str]:
+        """Filter a user's saved recipes."""
