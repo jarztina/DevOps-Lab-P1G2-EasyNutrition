@@ -1,0 +1,1 @@
+"""AI manager: Claude vision, JSON checking, Spoonacular recipes."""

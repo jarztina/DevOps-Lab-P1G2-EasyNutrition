@@ -1,0 +1,1 @@
+"""Logic manager: rules, scoring, corrections."""
