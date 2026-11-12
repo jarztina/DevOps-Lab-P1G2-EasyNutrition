@@ -72,3 +72,47 @@ def test_load_recent_handles_a_database_error():
     ok, message = repo.load_recent(1)
     assert ok is False and "recent scans" in message
 
+
+# ---- get_scan ---------------------------------------------
+
+SCAN_ROW = {
+    "id": 7, "created_at": "2026-11-10", "image_name": "lunch.jpg",
+    "calorie_limit": 600, "diet": "none", "detected_items": [{"name": "rice"}],
+}
+
+
+def test_get_scan_reports_db_down():
+    repo = ScanRepository(FakeDatabase(None))
+    assert repo.get_scan(1, 7) == (False, DB_DOWN)
+
+
+def test_get_scan_returns_none_when_not_found_or_not_owned():
+    repo = ScanRepository(FakeDatabase(make_conn(one=None)))
+    assert repo.get_scan(1, 999) == (True, None)
+
+
+def test_get_scan_splits_recipes_into_accepted_and_rejected():
+    rows = [
+        {"id": 1, "status": "accepted", "name": "Egg rice"},
+        {"id": 2, "status": "rejected", "name": "Pork bowl"},
+    ]
+    conn = make_conn(one=SCAN_ROW, many=rows)
+    repo = ScanRepository(FakeDatabase(conn))
+    ok, record = repo.get_scan(1, 7)
+    assert ok is True and record["scan_id"] == 7
+    assert [r["name"] for r in record["accepted"]] == ["Egg rice"]
+    assert [r["name"] for r in record["rejected"]] == ["Pork bowl"]
+    assert conn.close.called
+
+
+def test_get_scan_always_checks_the_owner():
+    conn = make_conn(one=SCAN_ROW)
+    ScanRepository(FakeDatabase(conn)).get_scan(5, 7)
+    sql, params = conn.execute.call_args_list[0].args
+    assert "user_id = %s" in sql and params == (7, 5)
+
+
+def test_get_scan_handles_a_database_error():
+    repo = ScanRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.get_scan(1, 7)
+    assert ok is False and "open this scan" in message
