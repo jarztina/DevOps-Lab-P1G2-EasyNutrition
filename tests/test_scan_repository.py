@@ -118,7 +118,7 @@ def test_get_scan_handles_a_database_error():
     assert ok is False and "open this scan" in message
 
 
-# ---- delete_scan (new in Part 2) ------------------------------------------
+# ---- delete_scan ------------------------------------------
 
 def test_delete_scan_reports_db_down():
     assert ScanRepository(FakeDatabase(None)).delete_scan(1, 7) == (False, DB_DOWN)
@@ -140,3 +140,40 @@ def test_delete_scan_handles_a_database_error():
     repo = ScanRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.delete_scan(1, 7)
     assert ok is False and "delete this scan" in message
+
+
+
+# ---- replace_scan_results ---------------------------------
+
+def test_replace_reports_db_down():
+    repo = ScanRepository(FakeDatabase(None))
+    assert repo.replace_scan_results(1, 7, RECORD) == (False, DB_DOWN)
+
+
+def test_replace_updates_scan_deletes_old_recipes_and_inserts_new_ones():
+    conn = make_conn(rowcount=1)
+    repo = ScanRepository(FakeDatabase(conn))
+    assert repo.replace_scan_results(1, 7, RECORD) == (True, True)
+    cursor = conn.cursor.return_value
+    # 1 UPDATE + 1 DELETE + one INSERT per recipe
+    assert cursor.execute.call_count == 2 + len(RECORD["accepted"]) + len(RECORD["rejected"])
+    assert conn.close.called
+
+
+def test_replace_does_nothing_when_scan_is_not_the_users():
+    conn = make_conn(rowcount=0)
+    repo = ScanRepository(FakeDatabase(conn))
+    assert repo.replace_scan_results(1, 999, RECORD) == (True, False)
+    assert conn.cursor.return_value.execute.call_count == 1   # only the UPDATE ran
+
+
+def test_replace_survives_a_malformed_record():
+    repo = ScanRepository(FakeDatabase(make_conn(rowcount=1)))
+    ok, message = repo.replace_scan_results(1, 7, {"accepted": []})
+    assert ok is False and "corrections" in message
+
+
+def test_replace_handles_a_database_error():
+    repo = ScanRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.replace_scan_results(1, 7, RECORD)
+    assert ok is False and "corrections" in message
