@@ -101,3 +101,31 @@ def test_update_recipe_rejects_bad_changes_before_touching_the_db(changes):
     ok, message = repo.update_recipe(1, 5, changes)
     assert ok is False and isinstance(message, str)
     assert not conn.execute.called
+
+
+
+def test_update_recipe_reports_db_down():
+    repo = RecipeRepository(FakeDatabase(None))
+    assert repo.update_recipe(1, 5, {"notes": "hi"}) == (False, DB_DOWN)
+
+
+def test_update_recipe_saves_notes_and_lists():
+    conn = make_conn(rowcount=1)
+    repo = RecipeRepository(FakeDatabase(conn))
+    changes = {"notes": "less salt", "extra_ingredients": ["oil"]}
+    assert repo.update_recipe(1, 5, changes) == (True, True)
+    sql, params = conn.execute.call_args.args
+    assert "notes = %s" in sql and "extra_ingredients = %s" in sql
+    assert params[0] == "less salt" and params[-2:] == [5, 1]
+    assert conn.close.called
+
+
+def test_update_recipe_false_when_not_found_or_not_owned():
+    repo = RecipeRepository(FakeDatabase(make_conn(rowcount=0)))
+    assert repo.update_recipe(1, 999, {"notes": "hi"}) == (True, False)
+
+
+def test_update_recipe_handles_a_database_error():
+    repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.update_recipe(1, 5, {"notes": "hi"})
+    assert ok is False and "save your changes" in message
