@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     extra_ingredients JSONB NOT NULL,
     steps             JSONB NOT NULL,
     spoonacular_id    INTEGER,
-    source_url        TEXT
+    source_url        TEXT,
+    notes             TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_scans_user ON scans(user_id);
