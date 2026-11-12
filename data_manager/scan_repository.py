@@ -92,3 +92,39 @@ class ScanRepository(BaseRepository):
             return False, "Could not load your recent scans."
         finally:
             conn.close()
+
+    
+    def get_scan(self, user_id: int, scan_id: int) -> tuple[bool, dict | None | str]:
+        """Open one scan with its recipes. Returns None when it is not this user's."""
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        try:
+            with conn:
+                scan = conn.execute(
+                    "SELECT id, created_at, image_name, calorie_limit, diet, "
+                    "detected_items FROM scans WHERE id = %s AND user_id = %s",
+                    (scan_id, user_id),
+                ).fetchone()
+                if scan is None:
+                    return True, None
+                rows = conn.execute(
+                    "SELECT * FROM recipes WHERE scan_id = %s "
+                    "ORDER BY score DESC, id",
+                    (scan_id,),
+                ).fetchall()
+            return True, {
+                "scan_id": scan["id"],
+                "created_at": scan["created_at"],
+                "image_name": scan["image_name"],
+                "calorie_limit": scan["calorie_limit"],
+                "diet": scan["diet"],
+                "detected_items": scan["detected_items"],
+                "accepted": [r for r in rows if r["status"] == "accepted"],
+                "rejected": [r for r in rows if r["status"] == "rejected"],
+            }
+        except psycopg.Error as exc:
+            logger.error("Could not read scan: %s", exc)
+            return False, "Could not open this scan."
+        finally:
+            conn.close()
