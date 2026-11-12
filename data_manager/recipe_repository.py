@@ -93,3 +93,31 @@ class RecipeRepository(BaseRepository):
             else:
                 return False, f"You cannot edit '{field}'."
         return True, ""
+    
+    def update_recipe(
+        self, user_id: int, recipe_id: int, changes: dict
+    ) -> tuple[bool, bool | str]:
+        """Edit notes and ingredient lists. Returns (True, False) if not found."""
+        ok, message = self._check_changes(changes)
+        if not ok:
+            return False, message
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        # Column names come from our own whitelist above, never from the user.
+        columns = list(changes)
+        assignments = ", ".join(f"{column} = %s" for column in columns)
+        values = [
+            Jsonb(changes[c]) if c in self.LIST_FIELDS else changes[c] for c in columns
+        ]
+        sql = f"UPDATE recipes SET {assignments} WHERE id = %s AND {OWNED_BY_USER}"
+        try:
+            with conn:
+                cursor = conn.execute(sql, values + [recipe_id, user_id])
+                updated = cursor.rowcount > 0
+            return True, updated
+        except psycopg.Error as exc:
+            logger.error("Could not update recipe: %s", exc)
+            return False, "Could not save your changes."
+        finally:
+            conn.close()
