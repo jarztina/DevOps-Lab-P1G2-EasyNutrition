@@ -128,3 +128,75 @@ class UserRepository(BaseRepository):
             return True, user["user_id"]
 
         return False, "Wrong name or password."
+    
+    def get_user(self, user_id: int) -> tuple[bool, dict | None | str]:
+        """Retrieve a user's profile."""
+
+        conn = self._connect()
+
+        if conn is None:
+            return False, DB_DOWN
+
+        try:
+            with conn:
+                row = conn.execute(
+                    "SELECT user_id, name, calorie_target, dietary_preference "
+                    "FROM users WHERE user_id = %s",
+                    (user_id,),
+                ).fetchone()
+
+            return True, row
+
+        except psycopg.Error as exc:
+            logger.error("Could not read user: %s", exc)
+            return False, "Could not load your profile."
+
+        finally:
+            conn.close()
+
+    def update_user(
+        self,
+        user_id: int,
+        calorie_target: int,
+        dietary_preference: str,
+    ) -> tuple[bool, bool | str]:
+        """Update a user's calorie target and dietary preference."""
+
+        if (
+            not isinstance(calorie_target, int)
+            or isinstance(calorie_target, bool)
+        ):
+            return False, "Calorie target must be a number."
+
+        if not isinstance(dietary_preference, str):
+            return False, "Dietary preference must be text."
+
+        if calorie_target <= 0:
+            return False, "Calorie target must be greater than 0."
+
+        if not dietary_preference.strip():
+            return False, "Dietary preference cannot be empty."
+
+        conn = self._connect()
+
+        if conn is None:
+            return False, DB_DOWN
+
+        try:
+            with conn:
+                cursor = conn.execute(
+                    "UPDATE users SET calorie_target = %s, "
+                    "dietary_preference = %s WHERE user_id = %s",
+                    (calorie_target, dietary_preference, user_id),
+                )
+
+                updated = cursor.rowcount > 0
+
+            return True, updated
+
+        except psycopg.Error as exc:
+            logger.error("Could not update user: %s", exc)
+            return False, "Could not update your profile."
+
+        finally:
+            conn.close()
