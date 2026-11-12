@@ -119,3 +119,65 @@ def test_get_user_handles_a_database_error():
     repo = UserRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.get_user(1)
     assert ok is False and "load your profile" in message
+
+
+# ---- update_user ----------------------------------------------------------
+
+def test_update_user_rejects_bad_input():
+    repo = UserRepository(FakeDatabase(make_conn()))
+    assert repo.update_user(1, 0, "none")[0] is False
+    assert repo.update_user(1, 2000, " ")[0] is False
+
+
+def test_update_user_reports_db_down():
+    repo = UserRepository(FakeDatabase(None))
+    assert repo.update_user(1, 2000, "none") == (False, DB_DOWN)
+
+
+def test_update_user_reports_a_row_was_changed():
+    repo = UserRepository(FakeDatabase(make_conn(rowcount=1)))
+    assert repo.update_user(1, 2000, "none") == (True, True)
+
+
+def test_update_user_returns_false_when_no_such_user():
+    repo = UserRepository(FakeDatabase(make_conn(rowcount=0)))
+    assert repo.update_user(999, 2000, "none") == (True, False)
+
+
+def test_update_user_handles_a_database_error():
+    repo = UserRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.update_user(1, 2000, "none")
+    assert ok is False and "update your profile" in message
+
+
+# ---- delete_user ----------------------------------------------------------
+
+def test_delete_user_reports_db_down():
+    repo = UserRepository(FakeDatabase(None))
+    assert repo.delete_user(1) == (False, DB_DOWN)
+
+
+def test_delete_user_deletes_an_existing_user():
+    conn = make_conn(rowcount=1)
+    repo = UserRepository(FakeDatabase(conn))
+    assert repo.delete_user(1) == (True, True)
+    sql, params = conn.execute.call_args.args
+    assert "DELETE FROM USERS" in sql.upper()
+    assert params == (1,)
+    assert conn.close.called
+
+
+def test_delete_user_returns_false_when_user_does_not_exist():
+    conn = make_conn(rowcount=0)
+    repo = UserRepository(FakeDatabase(conn))
+    assert repo.delete_user(999) == (True, False)
+    assert conn.close.called
+
+
+def test_delete_user_handles_a_database_error():
+    conn = make_conn(error=psycopg.Error("boom"))
+    repo = UserRepository(FakeDatabase(conn))
+    ok, message = repo.delete_user(1)
+    assert ok is False
+    assert isinstance(message, str)
+    assert conn.close.called
