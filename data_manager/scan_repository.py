@@ -92,7 +92,6 @@ class ScanRepository(BaseRepository):
             return False, "Could not load your recent scans."
         finally:
             conn.close()
-
     
     def get_scan(self, user_id: int, scan_id: int) -> tuple[bool, dict | None | str]:
         """Open one scan with its recipes. Returns None when it is not this user's."""
@@ -126,5 +125,24 @@ class ScanRepository(BaseRepository):
         except psycopg.Error as exc:
             logger.error("Could not read scan: %s", exc)
             return False, "Could not open this scan."
+        finally:
+            conn.close()
+    
+    def delete_scan(self, user_id: int, scan_id: int) -> tuple[bool, bool | str]:
+        """Delete one scan. Its recipes go too (ON DELETE CASCADE)."""
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        try:
+            with conn:
+                cursor = conn.execute(
+                    "DELETE FROM scans WHERE id = %s AND user_id = %s",
+                    (scan_id, user_id),
+                )
+                deleted = cursor.rowcount > 0
+            return True, deleted
+        except psycopg.Error as exc:
+            logger.error("Could not delete scan: %s", exc)
+            return False, "Could not delete this scan."
         finally:
             conn.close()
