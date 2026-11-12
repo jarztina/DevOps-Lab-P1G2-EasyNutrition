@@ -57,3 +57,65 @@ def test_create_user_handles_a_database_error():
     repo = UserRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.create_user("ann", "pw")
     assert ok is False and "try again" in message
+
+
+# ---- verify_login ---------------------------------------------------------
+
+def test_verify_login_needs_both_fields():
+    repo = UserRepository(FakeDatabase(make_conn()))
+    assert repo.verify_login("", "pw")[0] is False
+    assert repo.verify_login("ann", "")[0] is False
+
+
+def test_verify_login_reports_db_down():
+    repo = UserRepository(FakeDatabase(None))
+    assert repo.verify_login("ann", "pw") == (False, DB_DOWN)
+
+
+def test_verify_login_accepts_the_correct_password():
+    hashed = bcrypt.hashpw(b"pw", bcrypt.gensalt()).decode("utf-8")
+    repo = UserRepository(FakeDatabase(make_conn(one={"user_id": 7, "password_hash": hashed})))
+    assert repo.verify_login("Ann", "pw") == (True, 7)
+
+
+def test_verify_login_rejects_a_wrong_password():
+    hashed = bcrypt.hashpw(b"pw", bcrypt.gensalt()).decode("utf-8")
+    repo = UserRepository(FakeDatabase(make_conn(one={"user_id": 7, "password_hash": hashed})))
+    ok, message = repo.verify_login("ann", "nope")
+    assert ok is False and message == "Wrong name or password."
+
+
+def test_verify_login_rejects_an_unknown_user():
+    repo = UserRepository(FakeDatabase(make_conn(one=None)))
+    ok, message = repo.verify_login("ghost", "pw")
+    assert ok is False and message == "Wrong name or password."
+
+
+def test_verify_login_handles_a_database_error():
+    repo = UserRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.verify_login("ann", "pw")
+    assert ok is False and "check your login" in message
+
+
+# ---- get_user -------------------------------------------------------------
+
+def test_get_user_reports_db_down():
+    repo = UserRepository(FakeDatabase(None))
+    assert repo.get_user(1) == (False, DB_DOWN)
+
+
+def test_get_user_returns_the_row():
+    row = {"user_id": 1, "name": "ann", "calorie_target": 2000, "dietary_preference": "none"}
+    repo = UserRepository(FakeDatabase(make_conn(one=row)))
+    assert repo.get_user(1) == (True, row)
+
+
+def test_get_user_missing_user_is_not_an_error():
+    repo = UserRepository(FakeDatabase(make_conn(one=None)))
+    assert repo.get_user(999) == (True, None)
+
+
+def test_get_user_handles_a_database_error():
+    repo = UserRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.get_user(1)
+    assert ok is False and "load your profile" in message
