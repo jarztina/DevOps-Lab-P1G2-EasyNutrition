@@ -146,3 +146,36 @@ class ScanRepository(BaseRepository):
             return False, "Could not delete this scan."
         finally:
             conn.close()
+    
+    def replace_scan_results(
+        self, user_id: int, scan_id: int, record: dict
+    ) -> tuple[bool, bool | str]:
+        """After a fix: save the new ingredient list and the new recipes together.
+
+        Either everything is replaced or nothing is (one transaction).
+        Returns (True, False) when the scan does not belong to this user.
+        """
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        try:
+            with conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE scans SET detected_items = %s "
+                        "WHERE id = %s AND user_id = %s",
+                        (Jsonb(record["detected_items"]), scan_id, user_id),
+                    )
+                    if cursor.rowcount == 0:
+                        return True, False
+                    cursor.execute("DELETE FROM recipes WHERE scan_id = %s", (scan_id,))
+                    for recipe in record["accepted"] + record["rejected"]:
+                        cursor.execute(
+                            INSERT_RECIPE_SQL, self._recipe_params(scan_id, recipe)
+                        )
+            return True, True
+        except (psycopg.Error, KeyError, TypeError) as exc:
+            logger.error("Could not replace scan results: %s", exc)
+            return False, "Could not save your corrections."
+        finally:
+            conn.close()
