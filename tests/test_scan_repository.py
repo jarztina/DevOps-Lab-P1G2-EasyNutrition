@@ -116,3 +116,27 @@ def test_get_scan_handles_a_database_error():
     repo = ScanRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.get_scan(1, 7)
     assert ok is False and "open this scan" in message
+
+
+# ---- delete_scan (new in Part 2) ------------------------------------------
+
+def test_delete_scan_reports_db_down():
+    assert ScanRepository(FakeDatabase(None)).delete_scan(1, 7) == (False, DB_DOWN)
+
+
+def test_delete_scan_true_when_deleted_false_when_not_found():
+    assert ScanRepository(FakeDatabase(make_conn(rowcount=1))).delete_scan(1, 7) == (True, True)
+    assert ScanRepository(FakeDatabase(make_conn(rowcount=0))).delete_scan(1, 7) == (True, False)
+
+
+def test_delete_scan_only_deletes_the_users_own_scan():
+    conn = make_conn(rowcount=1)
+    ScanRepository(FakeDatabase(conn)).delete_scan(5, 7)
+    sql, params = conn.execute.call_args.args
+    assert "user_id = %s" in sql and params == (7, 5)
+
+
+def test_delete_scan_handles_a_database_error():
+    repo = ScanRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.delete_scan(1, 7)
+    assert ok is False and "delete this scan" in message
