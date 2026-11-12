@@ -200,3 +200,29 @@ class UserRepository(BaseRepository):
 
         finally:
             conn.close()
+    
+    def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
+        """Delete a user and related records through database cascades."""
+
+        conn = self._connect()
+
+        if conn is None:
+            return False, DB_DOWN
+
+        try:
+            with conn:
+                cursor = conn.execute(
+                    "DELETE FROM users WHERE user_id = %s",
+                    (user_id,),
+                )
+
+                deleted = cursor.rowcount > 0
+
+            return True, deleted
+
+        except psycopg.Error as exc:
+            logger.error("Could not delete user: %s", exc)
+            return False, "Could not delete the user."
+
+        finally:
+            conn.close()
