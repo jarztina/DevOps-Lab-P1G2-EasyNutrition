@@ -121,3 +121,23 @@ class RecipeRepository(BaseRepository):
             return False, "Could not save your changes."
         finally:
             conn.close()
+
+    
+    def delete_recipe(self, user_id: int, recipe_id: int) -> tuple[bool, bool | str]:
+        """Delete one saved recipe. Returns (True, False) if it was not found."""
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        try:
+            with conn:
+                cursor = conn.execute(
+                    f"DELETE FROM recipes WHERE id = %s AND {OWNED_BY_USER}",
+                    (recipe_id, user_id),
+                )
+                deleted = cursor.rowcount > 0
+            return True, deleted
+        except psycopg.Error as exc:
+            logger.error("Could not delete recipe: %s", exc)
+            return False, "Could not delete this recipe."
+        finally:
+            conn.close()
