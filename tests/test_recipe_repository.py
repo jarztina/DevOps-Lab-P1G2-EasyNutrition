@@ -129,3 +129,30 @@ def test_update_recipe_handles_a_database_error():
     repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.update_recipe(1, 5, {"notes": "hi"})
     assert ok is False and "save your changes" in message
+
+
+
+# ---- delete_recipe (new in Part 2) ----------------------------------------
+
+def test_delete_recipe_reports_db_down():
+    assert RecipeRepository(FakeDatabase(None)).delete_recipe(1, 5) == (False, DB_DOWN)
+
+
+def test_delete_recipe_true_when_deleted_false_when_not_found():
+    deleted = RecipeRepository(FakeDatabase(make_conn(rowcount=1)))
+    missing = RecipeRepository(FakeDatabase(make_conn(rowcount=0)))
+    assert deleted.delete_recipe(1, 5) == (True, True)
+    assert missing.delete_recipe(1, 5) == (True, False)
+
+
+def test_delete_recipe_only_touches_the_users_own_recipes():
+    conn = make_conn(rowcount=1)
+    RecipeRepository(FakeDatabase(conn)).delete_recipe(3, 5)
+    sql, params = conn.execute.call_args.args
+    assert "user_id = %s" in sql and params == (5, 3)
+
+
+def test_delete_recipe_handles_a_database_error():
+    repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.delete_recipe(1, 5)
+    assert ok is False and "delete this recipe" in message
