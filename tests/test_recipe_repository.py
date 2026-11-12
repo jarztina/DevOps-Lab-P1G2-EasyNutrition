@@ -52,3 +52,28 @@ def test_filter_recipes_handles_a_database_error():
     repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.filter_recipes(1)
     assert ok is False and "saved recipes" in message
+    
+
+# ---- get_recipe (new in Part 2) -------------------------------------------
+
+def test_get_recipe_reports_db_down():
+    assert RecipeRepository(FakeDatabase(None)).get_recipe(1, 5) == (False, DB_DOWN)
+
+
+def test_get_recipe_returns_the_row_or_none():
+    row = {"id": 5, "name": "Egg rice", "notes": ""}
+    assert RecipeRepository(FakeDatabase(make_conn(one=row))).get_recipe(1, 5) == (True, row)
+    assert RecipeRepository(FakeDatabase(make_conn(one=None))).get_recipe(1, 9) == (True, None)
+
+
+def test_get_recipe_checks_the_owner():
+    conn = make_conn(one=None)
+    RecipeRepository(FakeDatabase(conn)).get_recipe(3, 5)
+    sql, params = conn.execute.call_args.args
+    assert "s.user_id = %s" in sql and params == (5, 3)
+
+
+def test_get_recipe_handles_a_database_error():
+    repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
+    ok, message = repo.get_recipe(1, 5)
+    assert ok is False and "open this recipe" in message
