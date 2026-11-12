@@ -1,5 +1,6 @@
 """Tests for RecipeRepository. No real database needed."""
 import psycopg
+import pytest
 
 from tests.fakes import FakeDatabase, make_conn
 from data_manager.constants import DB_DOWN
@@ -52,7 +53,7 @@ def test_filter_recipes_handles_a_database_error():
     repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.filter_recipes(1)
     assert ok is False and "saved recipes" in message
-    
+
 
 # ---- get_recipe (new in Part 2) -------------------------------------------
 
@@ -77,3 +78,26 @@ def test_get_recipe_handles_a_database_error():
     repo = RecipeRepository(FakeDatabase(make_conn(error=psycopg.Error("boom"))))
     ok, message = repo.get_recipe(1, 5)
     assert ok is False and "open this recipe" in message
+
+
+
+# ---- update_recipe (new in Part 2) ----------------------------------------
+
+@pytest.mark.parametrize("changes", [
+    {},                                       # nothing to change
+    "notes",                                  # not a dict
+    {"name": "Hacked"},                       # field not allowed
+    {"calories": 1},                          # field not allowed
+    {"notes": 123},                           # wrong type
+    {"notes": "x" * 501},                     # too long
+    {"extra_ingredients": "salt"},            # must be a list
+    {"extra_ingredients": ["salt", ""]},      # empty item
+    {"extra_ingredients": ["a"] * 31},        # too many items
+    {"ingredients_used": ["x" * 101]},        # item too long
+])
+def test_update_recipe_rejects_bad_changes_before_touching_the_db(changes):
+    conn = make_conn(rowcount=1)
+    repo = RecipeRepository(FakeDatabase(conn))
+    ok, message = repo.update_recipe(1, 5, changes)
+    assert ok is False and isinstance(message, str)
+    assert not conn.execute.called
