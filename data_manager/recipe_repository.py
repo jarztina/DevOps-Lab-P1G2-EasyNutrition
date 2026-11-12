@@ -42,3 +42,24 @@ class RecipeRepository(BaseRepository):
             return False, "Could not search your saved recipes."
         finally:
             conn.close()
+
+    
+    def get_recipe(self, user_id: int, recipe_id: int) -> tuple[bool, dict | None | str]:
+        """Open one saved recipe. Returns None when it is not this user's."""
+        conn = self._connect()
+        if conn is None:
+            return False, DB_DOWN
+        try:
+            with conn:
+                row = conn.execute(
+                    "SELECT r.*, s.image_name, s.diet, s.created_at "
+                    "FROM recipes r JOIN scans s ON s.id = r.scan_id "
+                    "WHERE r.id = %s AND s.user_id = %s",
+                    (recipe_id, user_id),
+                ).fetchone()
+            return True, row
+        except psycopg.Error as exc:
+            logger.error("Could not read recipe: %s", exc)
+            return False, "Could not open this recipe."
+        finally:
+            conn.close()
