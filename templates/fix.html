@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Fix ingredients - EasyNutrition{% endblock %}
+{% block content %}
+<h1>Fix the ingredients</h1>
+<div class="card">
+  <p class="lead">Change anything the AI got wrong. Clear a name to remove it.
+  Use the empty rows to add food it missed. We will then look for new recipes
+  and check them again.</p>
+  {% for e in errors %}<div class="alert">{{ e }}</div>{% endfor %}
+  <form method="post" action="/scan/{{ scan.scan_id }}/fix"
+        onsubmit="var b=this.querySelector('button[type=submit]');
+                  b.disabled=true;b.textContent='Checking recipes...';">
+    <div class="fix-rows">
+      {% for i in rows %}
+      <div class="fix-row">
+        <input type="text" name="name" value="{{ i.name }}"
+               maxlength="50" aria-label="Ingredient">
+        <input type="text" name="quantity" value="{{ i.quantity }}"
+               maxlength="30" aria-label="Quantity">
+      </div>
+      {% endfor %}
+      {% for n in range(3) %}
+      <div class="fix-row">
+        <input type="text" name="name" placeholder="Add an ingredient"
+               maxlength="50" aria-label="New ingredient">
+        <input type="text" name="quantity" placeholder="Quantity"
+               maxlength="30" aria-label="New quantity">
+      </div>
+      {% endfor %}
+    </div>
+    <button type="submit">Check recipes again</button>
+  </form>
+</div>
+<p class="footer-link"><a href="/scan/{{ scan.scan_id }}">Cancel</a></p>
+{% endblock %}

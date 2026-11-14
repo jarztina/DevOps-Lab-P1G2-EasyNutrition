@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Edit recipe - EasyNutrition{% endblock %}
+{% block content %}
+<h1>Edit saved recipe</h1>
+<div class="card">
+  <h2 style="margin-top:0">{{ recipe.name }}</h2>
+  {% for e in errors %}<div class="alert">{{ e }}</div>{% endfor %}
+  <form method="post" action="/recipe/{{ recipe.id }}/edit">
+    <label>Your notes <span class="hint">up to 500 characters</span>
+      <textarea name="notes" rows="3" maxlength="500">{{ recipe.notes or '' }}</textarea>
+    </label>
+    <label>Ingredients from your leftovers <span class="hint">one per line</span>
+      <textarea name="ingredients_used" rows="4">
+{{- recipe.ingredients_used|join("\n") -}}</textarea>
+    </label>
+    <label>Extra ingredients to buy <span class="hint">one per line</span>
+      <textarea name="extra_ingredients" rows="4">
+{{- recipe.extra_ingredients|join("\n") -}}</textarea>
+    </label>
+    <button type="submit">Save changes</button>
+  </form>
+</div>
+<p class="footer-link"><a href="/history">Back to saved recipes</a></p>
+{% endblock %}

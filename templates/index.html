@@ -4,10 +4,11 @@
 <div class="card">
   <h1>What can I cook with my leftovers?</h1>
   <p class="lead">Upload a photo of your leftover food. We find the ingredients and suggest
-    recipes that fit your calorie limit and diet.</p>
+  recipes that fit your calorie limit and diet.</p>
   {% for e in errors %}<div class="alert">{{ e }}</div>{% endfor %}
   <form method="post" action="/analyse" enctype="multipart/form-data"
-        onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Analysing your photo...';">
+        onsubmit="var b=this.querySelector('button');b.disabled=true;
+                  b.textContent='Analysing your photo...';">
     <label>Photo <span class="hint">JPEG or PNG, up to 5 MB</span>
       <input type="file" name="image" accept="image/jpeg,image/png" required></label>
     <label>Calorie limit per serving <span class="hint">kcal</span>
@@ -23,7 +24,9 @@
 <div class="card">
   <h2 style="margin-top:0">Recent scans</h2>
   <ul class="plain">
-    {% for s in recent %}<li>{{ s.image_name }} - {{ s.accepted_count }} recipes</li>{% endfor %}
+    {% for s in recent %}
+    <li><a href="/scan/{{ s.id }}">{{ s.image_name }}</a> - {{ s.accepted_count }} recipes</li>
+    {% endfor %}
   </ul>
   <p class="footer-link"><a href="/history">See all saved recipes</a></p>
 </div>

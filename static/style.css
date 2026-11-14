@@ -149,3 +149,14 @@ footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 1
   .topbar { padding: 12px 14px; }
   .card { padding: 16px; }
 }
+
+/* ---- Part 2: fix ingredients, edit recipe, actions ---- */
+.fix-rows { display: grid; gap: 8px; margin-bottom: 14px; }
+.fix-row { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+textarea { width: 100%; padding: 10px; border: 1px solid #cfd8d2; border-radius: 8px;
+           font: inherit; font-weight: 400; box-sizing: border-box; }
+.alert.ok { background: var(--green-soft); color: var(--green-dark); border-color: var(--green); }
+.note { background: #fffbe6; padding: 8px 10px; border-radius: 6px; }
+td.actions { white-space: nowrap; }
+.btn-danger { background: #b3261e; color: #fff; border-color: #b3261e; }
+form.inline { display: inline; }
