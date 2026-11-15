@@ -10,6 +10,7 @@ Take a photo of your leftover food. The app uses AI to find the ingredients in t
 - **New feature: fix the AI's mistakes.** If the AI read the photo wrong, you can edit the ingredient list. The app then searches for new recipes, runs every check again, saves the new results, and shows a message such as "You added tofu and removed chicken. Recipes you can make: 1 before, 3 now."
 - **Advanced feature: edit and delete saved recipes.** You can change the notes and the ingredient lists of a saved recipe, delete one recipe, or delete a whole scan. Each user can only change their own data.
 - **More tests.** 235 tests run offline and inside Docker. They use fake AI replies and a fake database, so they cost nothing.
+- **Bug fixes.** The AI client now picks the first text block of the reply, so a "thinking" block no longer crashes the app. The edit page now accepts long ingredient lines (up to 200 characters) written by the recipe source.
 - **Continuous integration.** GitHub Actions runs the tests and builds the Docker image on every push and pull request.
 
 ## How it works
