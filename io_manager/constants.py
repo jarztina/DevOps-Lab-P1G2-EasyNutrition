@@ -12,3 +12,4 @@ MAX_INGREDIENTS = 20        # most ingredients a user can keep after fixing
 MAX_INGREDIENT_LENGTH = 50  # longest ingredient name
 MAX_NOTES_LENGTH = 500      # longest recipe note
 MAX_LIST_ITEMS = 30         # most lines in an ingredient list on the edit page
+MAX_LIST_ITEM_LENGTH = 200  # longest line in a recipe's ingredient list (edit page)

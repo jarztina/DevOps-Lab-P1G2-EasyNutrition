@@ -1,7 +1,7 @@
 """Collects and checks everything the user sends from a form."""
 from collections.abc import Mapping
 from werkzeug.datastructures import FileStorage
-from .constants import MAX_INGREDIENTS, MAX_LIST_ITEMS
+from .constants import MAX_INGREDIENTS, MAX_LIST_ITEM_LENGTH, MAX_LIST_ITEMS
 from .validators import (
     CaloriesValidator, DietValidator, NotesValidator, PasswordValidator,
     TextListValidator, UploadValidator, UsernameValidator,
@@ -17,7 +17,8 @@ class InputCollector:
         self._upload = UploadValidator()
         self._ingredients = TextListValidator(
             "Ingredient", MAX_INGREDIENTS, allow_empty=False)
-        self._recipe_lines = TextListValidator("Ingredient list", MAX_LIST_ITEMS)
+        self._recipe_lines = TextListValidator(
+            "Ingredient list", MAX_LIST_ITEMS, max_length=MAX_LIST_ITEM_LENGTH)
         self._notes = NotesValidator()
 
     def collect_credentials(

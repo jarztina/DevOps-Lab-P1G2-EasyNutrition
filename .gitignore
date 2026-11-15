@@ -4,3 +4,4 @@ env/
 __pycache__/
 *.pyc
 try_ai.py
+test images/
