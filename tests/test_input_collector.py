@@ -129,3 +129,10 @@ def test_collect_recipe_edit_collects_every_error():
     form = {"notes": "n" * 501, "ingredients_used": "a" * 201, "extra_ingredients": "ok"}
     ok, errors = collector.collect_recipe_edit(form)
     assert ok is False and len(errors) == 2
+
+def test_collect_recipe_edit_accepts_long_lines_from_the_recipe_source():
+    """Regression: real recipe sources write ingredient lines of 100 characters or more."""
+    long_line = "soy sauce to give a stronger colour but we prefer the rice to remain little " * 2
+    assert 100 < len(long_line) <= 200
+    ok, changes = collector.collect_recipe_edit({"extra_ingredients": long_line})
+    assert ok is True and changes["extra_ingredients"] == [long_line.strip()]
