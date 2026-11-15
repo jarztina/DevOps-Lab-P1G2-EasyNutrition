@@ -3,15 +3,18 @@
 {% block content %}
 <h1>Results</h1>
 {% if record.save_warning %}<div class="alert warn">{{ record.save_warning }}</div>{% endif %}
-
+{% if record.changes %}<div class="alert ok">{{ record.changes.message }}</div>{% endif %}
 <div class="card">
   <h2 style="margin-top:0">Food found</h2>
   <ul class="chips">
     {% for i in record.detected_items %}<li class="chip">{{ i.name }} ({{ i.quantity }})</li>
     {% else %}<li>No food detected in this photo.</li>{% endfor %}
   </ul>
+  {% if record.scan_id %}
+  <p class="hint">Did the AI get something wrong?</p>
+  <a class="btn" href="/scan/{{ record.scan_id }}/fix">Fix the ingredients</a>
+  {% endif %}
 </div>
-
 <h2>Recipes you can make</h2>
 {% for r in record.accepted %}
 <div class="card recipe">
@@ -23,15 +26,17 @@
     </div>
   </div>
   <p><strong>Uses your:</strong> {{ r.ingredients_used|join(", ") }}.<br>
-     <strong>Also needs:</strong> {{ r.extra_ingredients|join(", ") or "nothing extra" }}</p>
+  <strong>Also needs:</strong> {{ r.extra_ingredients|join(", ") or "nothing extra" }}</p>
+  {% if r.notes %}<p class="note"><strong>Your notes:</strong> {{ r.notes }}</p>{% endif %}
   <ol>{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol>
   {% if r.source_url and r.source_url.startswith("https://") %}
-    <p><a href="{{ r.source_url }}">Original recipe</a></p>{% endif %}
+  <p><a href="{{ r.source_url }}">Original recipe</a></p>{% endif %}
 </div>
 {% else %}
-<div class="card"><p>No recipe matched your limits. Try a higher calorie limit or a different diet.</p></div>
+<div class="card">
+  <p>No recipe matched your limits. Try a higher calorie limit or a different diet.</p>
+</div>
 {% endfor %}
-
 <h2>Rejected (and why)</h2>
 {% for r in record.rejected %}
 <details class="rejected">
@@ -39,6 +44,11 @@
   <ul class="reasons">{% for reason in r.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
 </details>
 {% else %}<p>Nothing was rejected.</p>{% endfor %}
-
+{% if record.scan_id %}
+<form method="post" action="/scan/{{ record.scan_id }}/delete" class="inline"
+      onsubmit="return confirm('Delete this whole scan and its recipes?');">
+  <button class="btn-small btn-danger" type="submit">Delete this scan</button>
+</form>
+{% endif %}
 <p class="footer-link"><a href="/">Try another photo</a></p>
 {% endblock %}

@@ -1,391 +1,62 @@
-import logging
-from collections.abc import Callable
+"""The PostgreSQL Data Manager. It owns three repositories and hands work to them."""
+from database.database import Database
 
-import bcrypt
-import psycopg
-from psycopg.types.json import Jsonb
-
-from database.connection import get_connection
 from .data_manager import DataManager
-
-logger = logging.getLogger(__name__)
-
-DB_DOWN = "The database is unavailable right now."
-MAX_PASSWORD_BYTES = 72  # bcrypt cannot use more than 72 bytes
-
-
-INSERT_SCAN_SQL = """
-INSERT INTO scans (user_id, image_name, calorie_limit, diet, detected_items)
-VALUES (%s, %s, %s, %s, %s) RETURNING id
-"""
-
-INSERT_RECIPE_SQL = """
-INSERT INTO recipes (scan_id, name, calories, status, score, leftovers_used,
-                     reasons, ingredients_used, extra_ingredients, steps,
-                     spoonacular_id, source_url)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-"""
+from .recipe_repository import RecipeRepository
+from .scan_repository import ScanRepository
+from .user_repository import UserRepository
 
 
 class PostgresDataManager(DataManager):
-    """Data Manager implementation using PostgreSQL and psycopg."""
+    """One front door for all data work (composition: it creates and owns its parts)."""
 
-    def __init__(self, connection_factory: Callable | None = None):
-        # Dependency injection allows tests to provide fake connections.
-        self._connection_factory = connection_factory or (
-            lambda: get_connection()
-        )
+    def __init__(self, database=None):
+        self._database = database or Database()
+        self._users = UserRepository(self._database)
+        self._scans = ScanRepository(self._database)
+        self._recipes = RecipeRepository(self._database)
 
-    def _get_connection(self):
-        """Return a database connection, or None when the database is down."""
-        return self._connection_factory()
+    # ---- users -------------------------------------------------------------
+    def create_user(self, name, password, calorie_target=2000, dietary_preference="none"):
+        return self._users.create_user(name, password, calorie_target, dietary_preference)
 
-    @staticmethod
-    def password_matches(password: str, stored_hash: str) -> bool:
-        """Check whether a password matches its bcrypt hash."""
-        try:
-            return bcrypt.checkpw(
-                password.encode("utf-8"),
-                stored_hash.encode("utf-8")
-            )
-        except (ValueError, TypeError, AttributeError):
-            return False
+    def verify_login(self, name, password):
+        return self._users.verify_login(name, password)
 
-    def create_user(
-        self,
-        name: str,
-        password: str,
-        calorie_target: int = 2000,
-        dietary_preference: str = "none",
-    ) -> tuple[bool, int | str]:
-        """Register a user."""
+    def get_user(self, user_id):
+        return self._users.get_user(user_id)
 
-        if not isinstance(name, str) or not isinstance(password, str):
-            return False, "Name and password must be text."
+    def update_user(self, user_id, calorie_target, dietary_preference):
+        return self._users.update_user(user_id, calorie_target, dietary_preference)
 
-        name = name.strip().lower()
+    def delete_user(self, user_id):
+        return self._users.delete_user(user_id)
 
-        if not name:
-            return False, "Name cannot be empty."
-        if not password:
-            return False, "Password cannot be empty."
-        if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
-            return False, "Password is too long."
+    # ---- scans -------------------------------------------------------------
+    def save_record(self, record):
+        return self._scans.save_record(record)
 
-        if (
-            not isinstance(calorie_target, (int, float))
-            or isinstance(calorie_target, bool)
-        ):
-            return False, "Calorie target must be a number."
+    def load_recent(self, user_id, limit=5):
+        return self._scans.load_recent(user_id, limit)
 
-        if calorie_target <= 0:
-            return False, "Calorie target must be greater than 0."
+    def get_scan(self, user_id, scan_id):
+        return self._scans.get_scan(user_id, scan_id)
 
-        if not isinstance(dietary_preference, str):
-            return False, "Dietary preference must be text."
+    def delete_scan(self, user_id, scan_id):
+        return self._scans.delete_scan(user_id, scan_id)
 
-        if not dietary_preference.strip():
-            return False, "Dietary preference cannot be empty."
+    def replace_scan_results(self, user_id, scan_id, record):
+        return self._scans.replace_scan_results(user_id, scan_id, record)
 
-        password_hash = bcrypt.hashpw(
-            password.encode("utf-8"),
-            bcrypt.gensalt()
-        ).decode("utf-8")
+    # ---- recipes -----------------------------------------------------------
+    def filter_recipes(self, user_id, diet=None, max_calories=None, status="accepted"):
+        return self._recipes.filter_recipes(user_id, diet, max_calories, status)
 
-        conn = self._get_connection()
+    def get_recipe(self, user_id, recipe_id):
+        return self._recipes.get_recipe(user_id, recipe_id)
 
-        if conn is None:
-            return False, DB_DOWN
+    def update_recipe(self, user_id, recipe_id, changes):
+        return self._recipes.update_recipe(user_id, recipe_id, changes)
 
-        try:
-            with conn:
-                row = conn.execute(
-                    "INSERT INTO users "
-                    "(name, password_hash, calorie_target, dietary_preference) "
-                    "VALUES (%s, %s, %s, %s) RETURNING user_id",
-                    (name, password_hash, calorie_target, dietary_preference),
-                ).fetchone()
-
-            return True, row["user_id"]
-
-        except psycopg.errors.UniqueViolation:
-            return False, "That name is already taken."
-
-        except psycopg.Error as exc:
-            logger.error("Could not create user: %s", exc)
-            return False, "Could not create your account. Please try again."
-
-        finally:
-            conn.close()
-
-    def verify_login(
-        self, name: str, password: str
-    ) -> tuple[bool, int | str]:
-        """Check a user's login credentials."""
-
-        if not isinstance(name, str) or not isinstance(password, str):
-            return False, "Please type your name and password."
-
-        name = name.strip().lower()
-
-        if not name or not password:
-            return False, "Please type your name and password."
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        try:
-            with conn:
-                user = conn.execute(
-                    "SELECT user_id, password_hash FROM users WHERE name = %s",
-                    (name,),
-                ).fetchone()
-
-        except psycopg.Error as exc:
-            logger.error("Could not look up user: %s", exc)
-            return False, "Could not check your login right now."
-
-        finally:
-            conn.close()
-
-        if user is not None and self.password_matches(
-            password, user["password_hash"]
-        ):
-            return True, user["user_id"]
-
-        return False, "Wrong name or password."
-
-    def get_user(self, user_id: int) -> tuple[bool, dict | None | str]:
-        """Retrieve a user's profile."""
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        try:
-            with conn:
-                row = conn.execute(
-                    "SELECT user_id, name, calorie_target, dietary_preference "
-                    "FROM users WHERE user_id = %s",
-                    (user_id,),
-                ).fetchone()
-
-            return True, row
-
-        except psycopg.Error as exc:
-            logger.error("Could not read user: %s", exc)
-            return False, "Could not load your profile."
-
-        finally:
-            conn.close()
-
-    def update_user(
-        self,
-        user_id: int,
-        calorie_target: int,
-        dietary_preference: str,
-    ) -> tuple[bool, bool | str]:
-        """Update a user's calorie target and dietary preference."""
-
-        if (
-            not isinstance(calorie_target, int)
-            or isinstance(calorie_target, bool)
-        ):
-            return False, "Calorie target must be a number."
-
-        if not isinstance(dietary_preference, str):
-            return False, "Dietary preference must be text."
-
-        if calorie_target <= 0:
-            return False, "Calorie target must be greater than 0."
-
-        if not dietary_preference.strip():
-            return False, "Dietary preference cannot be empty."
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        try:
-            with conn:
-                cursor = conn.execute(
-                    "UPDATE users SET calorie_target = %s, "
-                    "dietary_preference = %s WHERE user_id = %s",
-                    (calorie_target, dietary_preference, user_id),
-                )
-
-                updated = cursor.rowcount > 0
-
-            return True, updated
-
-        except psycopg.Error as exc:
-            logger.error("Could not update user: %s", exc)
-            return False, "Could not update your profile."
-
-        finally:
-            conn.close()
-
-    def delete_user(self, user_id: int) -> tuple[bool, bool | str]:
-        """Delete a user and related records through database cascades."""
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        try:
-            with conn:
-                cursor = conn.execute(
-                    "DELETE FROM users WHERE user_id = %s",
-                    (user_id,),
-                )
-
-                deleted = cursor.rowcount > 0
-
-            return True, deleted
-
-        except psycopg.Error as exc:
-            logger.error("Could not delete user: %s", exc)
-            return False, "Could not delete the user."
-
-        finally:
-            conn.close()
-
-    def save_record(self, record: dict) -> tuple[bool, int | str]:
-        """Save a scan and its associated recipes in one transaction."""
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        try:
-            with conn:
-                with conn.cursor() as cursor:
-                    cursor.execute(
-                        INSERT_SCAN_SQL,
-                        (
-                            record["user_id"],
-                            record["image_name"],
-                            record["calorie_limit"],
-                            record["diet"],
-                            Jsonb(record["detected_items"]),
-                        ),
-                    )
-
-                    scan_id = cursor.fetchone()["id"]
-
-                    for recipe in record["accepted"] + record["rejected"]:
-                        cursor.execute(
-                            INSERT_RECIPE_SQL,
-                            (
-                                scan_id,
-                                recipe["name"],
-                                recipe.get("calories"),
-                                recipe["status"],
-                                recipe["score"],
-                                recipe["leftovers_used"],
-                                Jsonb(recipe["reasons"]),
-                                Jsonb(recipe.get("ingredients_used", [])),
-                                Jsonb(recipe.get("extra_ingredients", [])),
-                                Jsonb(recipe.get("steps", [])),
-                                recipe.get("spoonacular_id"),
-                                recipe.get("source_url", ""),
-                            ),
-                        )
-
-            return True, scan_id
-
-        except (psycopg.Error, KeyError, TypeError) as exc:
-            logger.error("Could not save record: %s", exc)
-            return False, (
-                "Your results could not be saved, but they are shown below."
-            )
-
-        finally:
-            conn.close()
-
-    def load_recent(
-        self, user_id: int, limit: int = 5
-    ) -> tuple[bool, list | str]:
-        """Load recent scans and count accepted recipes."""
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        sql = """
-            SELECT s.id, s.created_at, s.image_name, s.calorie_limit, s.diet,
-                   (SELECT COUNT(*) FROM recipes r
-                    WHERE r.scan_id = s.id AND r.status = 'accepted')
-                    AS accepted_count
-            FROM scans s
-            WHERE s.user_id = %s
-            ORDER BY s.created_at DESC
-            LIMIT %s
-        """
-
-        try:
-            with conn:
-                rows = conn.execute(
-                    sql, (user_id, limit)
-                ).fetchall()
-
-            return True, rows
-
-        except psycopg.Error as exc:
-            logger.error("Could not load recent scans: %s", exc)
-            return False, "Could not load your recent scans."
-
-        finally:
-            conn.close()
-
-    def filter_recipes(
-        self,
-        user_id: int,
-        diet: str | None = None,
-        max_calories: int | None = None,
-        status: str = "accepted",
-    ) -> tuple[bool, list | str]:
-        """Find saved recipes by status, diet and calorie limit."""
-
-        conn = self._get_connection()
-
-        if conn is None:
-            return False, DB_DOWN
-
-        sql = (
-            "SELECT r.*, s.image_name, s.diet, s.created_at "
-            "FROM recipes r JOIN scans s ON s.id = r.scan_id "
-            "WHERE s.user_id = %s AND r.status = %s"
-        )
-
-        params = [user_id, status]
-
-        if diet and diet != "none":
-            sql += " AND s.diet = %s"
-            params.append(diet)
-
-        if max_calories is not None:
-            sql += " AND r.calories <= %s"
-            params.append(max_calories)
-
-        sql += " ORDER BY s.created_at DESC, r.score DESC, r.id LIMIT 100"
-
-        try:
-            with conn:
-                rows = conn.execute(sql, params).fetchall()
-
-            return True, rows
-
-        except psycopg.Error as exc:
-            logger.error("Could not filter recipes: %s", exc)
-            return False, "Could not search your saved recipes."
-
-        finally:
-            conn.close()
+    def delete_recipe(self, user_id, recipe_id):
+        return self._recipes.delete_recipe(user_id, recipe_id)
