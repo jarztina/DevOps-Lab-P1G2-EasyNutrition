@@ -14,7 +14,7 @@ class WebApp:
     """Glues the four managers together. It decides the ORDER of calls, nothing else."""
 
     def __init__(self, io, ai, logic, data):
-        # Composition: the web app owns one of each manager.
+        # Aggregation: AppFactory builds the managers and hands them in.
         self._io = io
         self._ai = ai
         self._logic = logic
