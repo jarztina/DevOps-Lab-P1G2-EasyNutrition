@@ -36,8 +36,8 @@ Photo and form -> `IOManager` -> `AIManager` -> `LogicManager` -> `PostgresDataM
 | Abstract classes | `AIService`, `RecipeSource`, `DataManager`, `Rule`, `Scorer`, `Validator` |
 | Inheritance | `AIManager` extends `AIService`. The three repositories extend `BaseRepository`. Each rule extends `Rule`. |
 | Polymorphism | `RecipeEvaluator` runs a list of `Rule` objects through the same `check()` method. |
-| Composition | `PostgresDataManager` owns its repositories. `IOManager` owns the collector, the session manager and the renderer. `WebApp` owns the four managers. |
-| Aggregation | The `Database`, the recipe source, and the rules and scorer are passed in from outside. |
+| Composition | `PostgresDataManager` creates its repositories. `IOManager` creates the collector, the session manager and the renderer. `InputCollector` creates its validators. |
+| Aggregation | `WebApp` receives the four managers from `AppFactory`. The `Database`, the recipe source, and the rules and scorer are also passed in from outside. |
 | Association | One `IngredientMatcher` is shared by the rules and the scorer. |
 | Encapsulation | Fields start with `_`. Other code uses public methods. |
 | Dependency injection | Tests pass in fake parts (`FakeAI`, `FakeData`, `FakeDatabase`). |
