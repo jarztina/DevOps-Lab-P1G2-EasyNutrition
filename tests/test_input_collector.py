@@ -126,6 +126,6 @@ def test_collect_recipe_edit_allows_empty_lists_and_notes():
     assert changes == {"notes": "", "ingredients_used": [], "extra_ingredients": []}
 
 def test_collect_recipe_edit_collects_every_error():
-    form = {"notes": "n" * 501, "ingredients_used": "a" * 60, "extra_ingredients": "ok"}
+    form = {"notes": "n" * 501, "ingredients_used": "a" * 201, "extra_ingredients": "ok"}
     ok, errors = collector.collect_recipe_edit(form)
     assert ok is False and len(errors) == 2

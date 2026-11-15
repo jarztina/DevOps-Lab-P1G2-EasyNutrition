@@ -93,7 +93,7 @@ def test_get_recipe_handles_a_database_error():
     {"extra_ingredients": "salt"},            # must be a list
     {"extra_ingredients": ["salt", ""]},      # empty item
     {"extra_ingredients": ["a"] * 31},        # too many items
-    {"ingredients_used": ["x" * 101]},        # item too long
+    {"ingredients_used": ["x" * 201]},        # item too long
 ])
 def test_update_recipe_rejects_bad_changes_before_touching_the_db(changes):
     conn = make_conn(rowcount=1)

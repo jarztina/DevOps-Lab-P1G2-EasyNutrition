@@ -18,7 +18,7 @@ class RecipeRepository(BaseRepository):
     TEXT_FIELDS = {"notes": 500}                          # field -> longest text
     LIST_FIELDS = ("ingredients_used", "extra_ingredients")
     MAX_LIST_ITEMS = 30
-    MAX_ITEM_LENGTH = 100
+    MAX_ITEM_LENGTH = 200
 
     def filter_recipes(
         self, user_id: int, diet: str | None = None,
